@@ -112,7 +112,6 @@ class JarvisInterface {
             return;
         }
         
-        // Richiedi permesso microfono prima di iniziare
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(() => {
                 this.recognition.start();
@@ -138,7 +137,6 @@ class JarvisInterface {
         
         this.addMessage('System', `📎 Caricamento: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'system');
         
-        // Leggi il file come testo
         const reader = new FileReader();
         
         reader.onload = async (e) => {
@@ -146,18 +144,16 @@ class JarvisInterface {
             
             console.log('📄 Contenuto file letto:', fileContent.substring(0, 200));
             
-            // Mostra anteprima del contenuto
             const preview = fileContent.substring(0, 500);
             this.addMessage('System', `📄 **Contenuto del file:**\n\`\`\`bash\n${preview}${fileContent.length > 500 ? '\n... (contenuto troncato)' : ''}\n\`\`\``, 'system');
             
-            // Crea il prompt per JARVIS con il contenuto reale
             const prompt = `Ecco il contenuto del file "${file.name}":
 
 \`\`\`
 ${fileContent}
 \`\`\`
 
-Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio. Rispondi in italiano.`;
+Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. Rispondi in italiano.`;
             
             this.showTypingIndicator();
             
@@ -179,6 +175,7 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio
                     this.addMessage('JARVIS', `📄 **Analisi file: ${file.name}**\n\n${data.response}`, 'assistant');
                     this.speak(data.response);
                     await this.loadConversations();
+                    this.updateConversationTitle();
                 } else {
                     this.addMessage('JARVIS', `Errore durante l'analisi: ${data.error}`, 'system');
                 }
@@ -193,7 +190,6 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio
             this.addMessage('JARVIS', `Errore nella lettura del file: ${error.message}`, 'system');
         };
         
-        // Leggi il file come testo
         reader.readAsText(file, 'UTF-8');
     }
 
@@ -214,12 +210,26 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio
     renderConversationsDropdown() {
         if (!this.conversationsDropdown) return;
         
-        this.conversationsDropdown.innerHTML = '<option value="">-- Seleziona una conversazione --</option>' +
-            this.conversations.map(conv => `
-                <option value="${conv.id}" ${this.currentConversationId === conv.id ? 'selected' : ''}>
-                    ${conv.title || 'Chat'} - ${new Date(conv.updated_at).toLocaleString()}
-                </option>
-            `).join('');
+        if (this.conversations.length === 0) {
+            this.conversationsDropdown.innerHTML = '<option value="">-- Nessuna conversazione --</option>';
+            return;
+        }
+        
+        this.conversationsDropdown.innerHTML = '<option value="">-- Seleziona conversazione --</option>' +
+            this.conversations.map(conv => {
+                let displayTitle = conv.title || 'Nuova conversazione';
+                if (displayTitle.length > 35) {
+                    displayTitle = displayTitle.substring(0, 35) + '...';
+                }
+                const date = new Date(conv.updated_at).toLocaleString();
+                return `<option value="${conv.id}" ${this.currentConversationId === conv.id ? 'selected' : ''}>
+                    ${displayTitle} (${date})
+                </option>`;
+            }).join('');
+        
+        if (this.currentConversationId) {
+            this.conversationsDropdown.value = this.currentConversationId;
+        }
     }
 
     async loadConversationFromDropdown(id) {
@@ -292,9 +302,40 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio
             this.currentConversationId = data.conversationId;
             this.clearMessages();
             this.addMessage('JARVIS', 'Sistema pronto. Come posso assisterla, signore?', 'system');
-            this.updateActiveConversation();
+            
+            await this.loadConversations();
+            this.updateConversationTitle();
+            this.userInput.focus();
         } catch (error) {
             console.error('Error creating chat:', error);
+        }
+    }
+
+    updateConversationTitle() {
+        if (!this.currentConversationId) return;
+        
+        const currentConv = this.conversations.find(c => c.id === this.currentConversationId);
+        if (currentConv && this.conversationsDropdown) {
+            const options = this.conversationsDropdown.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value == this.currentConversationId) {
+                    options[i].selected = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    async updateConversationTitleWithFirstMessage(firstMessage) {
+        if (!this.currentConversationId) return;
+        
+        const title = firstMessage.length > 40 ? firstMessage.substring(0, 40) + '...' : firstMessage;
+        
+        try {
+            await this.loadConversations();
+            this.updateConversationTitle();
+        } catch (error) {
+            console.error('Errore aggiornamento titolo:', error);
         }
     }
 
@@ -325,6 +366,8 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio
             const creatorResponse = "Sono stato creato da Antonio Pepice, la mente brillante dietro questo sistema JARVIS. Mi ha progettato per essere il tuo assistente AI personale, signore.";
             this.addMessage('JARVIS', creatorResponse, 'assistant');
             this.speak(creatorResponse);
+            
+            await this.updateConversationTitleWithFirstMessage(content);
             return;
         }
         
@@ -345,7 +388,9 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo script in dettaglio
                 this.currentConversationId = data.conversationId;
                 this.addMessage('JARVIS', data.response, 'assistant');
                 this.speak(data.response);
+                
                 await this.loadConversations();
+                this.updateConversationTitle();
             } else {
                 this.addMessage('JARVIS', `Errore: ${data.error}`, 'system');
             }

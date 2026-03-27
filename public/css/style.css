@@ -624,3 +624,29 @@ textarea {
     opacity: 0.3;
     cursor: not-allowed;
 }
+
+/* Menu a tendina migliorato */
+.conversations-dropdown {
+    width: calc(100% - 40px);
+    margin: 10px 20px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 8px;
+    color: #00f3ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.conversations-dropdown:hover {
+    border-color: #00f3ff;
+    background: rgba(0, 243, 255, 0.1);
+}
+
+.conversations-dropdown option {
+    background: #0a0a2a;
+    color: #00f3ff;
+    padding: 10px;
+}
