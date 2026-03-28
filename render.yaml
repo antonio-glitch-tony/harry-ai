@@ -2,14 +2,13 @@ services:
   - type: web
     name: jarvis-ai
     runtime: node
-    repo: https://github.com/tuo-username/jarvis-ai
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
-      - key: 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
-        sync: false
-      - key: NODE_ENV
-        value: production
+      - key: NODE_VERSION
+        value: 20.19.6
       - key: PORT
-        value: 10000
+        value: 3000
+    healthCheckPath: /health
+    autoDeploy: true

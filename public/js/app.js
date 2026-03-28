@@ -1,19 +1,54 @@
 class JarvisInterface {
     constructor() {
-        this.apiUrl = window.location.origin + '/api';
+        this.apiUrl = '';
+        this.token = localStorage.getItem('jarvis_token');
+        this.currentUser = null;
         this.currentConversationId = null;
         this.conversations = [];
         this.synthesis = window.speechSynthesis;
         this.recognition = null;
         this.isSpeaking = false;
         this.isListening = false;
-        this.sidebar = null;
-        this.hamburgerBtn = null;
-        this.sidebarOverlay = null;
-        this.init();
+        
+        if (this.token) {
+            this.verifyAuth();
+        } else {
+            this.showAuthPage();
+        }
+        
+        this.initSidebar();
     }
-
-    init() {
+    
+    async verifyAuth() {
+        try {
+            const response = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                this.currentUser = data.user;
+                this.initChat();
+            } else {
+                this.showAuthPage();
+            }
+        } catch (error) {
+            console.error('Auth error:', error);
+            this.showAuthPage();
+        }
+    }
+    
+    showAuthPage() {
+        document.getElementById('authPage').style.display = 'flex';
+        document.getElementById('chatPage').style.display = 'none';
+        this.token = null;
+        localStorage.removeItem('jarvis_token');
+    }
+    
+    initChat() {
+        document.getElementById('authPage').style.display = 'none';
+        document.getElementById('chatPage').style.display = 'block';
+        
         this.chatMessages = document.getElementById('chatMessages');
         this.userInput = document.getElementById('userInput');
         this.sendBtn = document.getElementById('sendBtn');
@@ -30,10 +65,14 @@ class JarvisInterface {
         this.initSpeechRecognition();
         this.loadConversations();
         this.createNewChat();
-        this.initSidebar();
         this.updateSystemTime();
+        
+        // Welcome message with user name
+        setTimeout(() => {
+            this.addMessage('JARVIS', `Benvenuto ${this.currentUser.name}! Come posso assisterti oggi, signore?`, 'assistant', []);
+        }, 500);
     }
-
+    
     initSidebar() {
         this.sidebar = document.getElementById('sidebar');
         this.hamburgerBtn = document.getElementById('hamburgerBtn');
@@ -51,7 +90,7 @@ class JarvisInterface {
             }
         });
     }
-
+    
     toggleSidebar() {
         if (this.sidebar.classList.contains('open')) {
             this.closeSidebar();
@@ -59,7 +98,7 @@ class JarvisInterface {
             this.openSidebar();
         }
     }
-
+    
     openSidebar() {
         if (this.sidebar) {
             this.sidebar.classList.add('open');
@@ -67,7 +106,7 @@ class JarvisInterface {
             if (this.sidebarOverlay) this.sidebarOverlay.classList.add('active');
         }
     }
-
+    
     closeSidebar() {
         if (this.sidebar) {
             this.sidebar.classList.remove('open');
@@ -75,10 +114,10 @@ class JarvisInterface {
             if (this.sidebarOverlay) this.sidebarOverlay.classList.remove('active');
         }
     }
-
+    
     async updateSystemTime() {
         try {
-            const response = await fetch(`${this.apiUrl}/system/info`);
+            const response = await fetch('/api/system/info');
             const data = await response.json();
             if (data.success) {
                 console.log(`📅 ${data.day} ${data.date} - 🕐 ${data.time}`);
@@ -87,7 +126,7 @@ class JarvisInterface {
             console.error('Errore recupero ora:', error);
         }
     }
-
+    
     initSpeechRecognition() {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -95,10 +134,8 @@ class JarvisInterface {
             this.recognition.lang = 'it-IT';
             this.recognition.continuous = false;
             this.recognition.interimResults = true;
-            this.recognition.maxAlternatives = 1;
             
             this.recognition.onstart = () => {
-                console.log('🎤 Microfono attivo');
                 this.isListening = true;
                 this.showListeningIndicator();
                 const micBtn = document.getElementById('micBtn');
@@ -110,7 +147,6 @@ class JarvisInterface {
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript;
                 }
-                console.log('🎤 Riconosciuto:', transcript);
                 this.userInput.value = transcript;
                 
                 if (event.results[0].isFinal) {
@@ -129,97 +165,66 @@ class JarvisInterface {
                 const micBtn = document.getElementById('micBtn');
                 if (micBtn) micBtn.classList.remove('listening');
                 this.isListening = false;
-                
-                let errorMsg = "Non ho capito, puoi ripetere?";
-                if (event.error === 'not-allowed') {
-                    errorMsg = "Per favore, concedi il permesso al microfono. Clicca sull'icona del lucchetto nella barra degli indirizzi e abilita il microfono.";
-                } else if (event.error === 'no-speech') {
-                    errorMsg = "Non ho rilevato alcuna voce. Prova a parlare più forte o avvicinati al microfono.";
-                } else if (event.error === 'audio-capture') {
-                    errorMsg = "Nessun microfono trovato. Collega un microfono al computer.";
-                }
-                this.addMessage('JARVIS', errorMsg, 'system');
             };
             
             this.recognition.onend = () => {
-                console.log('🎤 Microfono disattivato');
                 this.isListening = false;
                 this.hideListeningIndicator();
                 const micBtn = document.getElementById('micBtn');
                 if (micBtn) micBtn.classList.remove('listening');
             };
         } else {
-            console.warn('Speech recognition not supported');
             const micBtn = document.getElementById('micBtn');
             if (micBtn) {
                 micBtn.style.opacity = '0.5';
-                micBtn.title = 'Riconoscimento vocale non supportato in questo browser. Usa Chrome o Edge.';
                 micBtn.disabled = true;
             }
-            this.addMessage('JARVIS', 'Il riconoscimento vocale non è supportato in questo browser. Per parlare con me, usa Google Chrome o Microsoft Edge.', 'system');
         }
     }
-
+    
     startListening() {
-        if (!this.recognition) {
-            this.addMessage('JARVIS', 'Il riconoscimento vocale non è supportato in questo browser. Usa Google Chrome o Microsoft Edge.', 'system');
-            return;
-        }
-        
+        if (!this.recognition) return;
         if (this.isListening) {
             this.recognition.stop();
             return;
         }
         
         navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(() => {
-                this.recognition.start();
-            })
+            .then(() => this.recognition.start())
             .catch((err) => {
                 console.error('Microphone permission denied:', err);
-                this.addMessage('JARVIS', 'Per parlare con me, devi concedere il permesso al microfono. Clicca sull\'icona del lucchetto nella barra degli indirizzi e abilita il microfono.', 'system');
             });
     }
-
+    
     showListeningIndicator() {
         const indicator = document.getElementById('listeningIndicator');
         if (indicator) indicator.style.display = 'block';
     }
-
+    
     hideListeningIndicator() {
         const indicator = document.getElementById('listeningIndicator');
         if (indicator) indicator.style.display = 'none';
     }
-
+    
     async uploadFile(file) {
         if (!file) return;
         
-        this.addMessage('System', `📎 Caricamento: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'system');
+        this.addMessage('System', `📎 Caricamento: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'system', []);
         
         const reader = new FileReader();
-        
         reader.onload = async (e) => {
             const fileContent = e.target.result;
-            
-            console.log('📄 Contenuto file letto:', fileContent.substring(0, 200));
-            
-            const preview = fileContent.substring(0, 500);
-            this.addMessage('System', `📄 **Contenuto del file:**\n\`\`\`bash\n${preview}${fileContent.length > 500 ? '\n... (contenuto troncato)' : ''}\n\`\`\``, 'system');
-            
-            const prompt = `Ecco il contenuto del file "${file.name}":
-
-\`\`\`
-${fileContent}
-\`\`\`
-
-Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. Rispondi in italiano.`;
+            const prompt = `Analizza questo file chiamato "${file.name}" e spiegami cosa contiene:\n\n${fileContent}`;
             
             this.showTypingIndicator();
             
             try {
-                const response = await fetch(`${this.apiUrl}/chat/history`, {
+                const response = await fetch('/api/chat/history', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.token}`
+                    },
                     body: JSON.stringify({
                         conversationId: this.currentConversationId,
                         message: prompt
@@ -231,30 +236,25 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
                 
                 if (data.success) {
                     this.currentConversationId = data.conversationId;
-                    this.addMessage('JARVIS', `📄 **Analisi file: ${file.name}**\n\n${data.response}`, 'assistant');
+                    await this.typeMessage(`📄 **Analisi file: ${file.name}**\n\n${data.response}`, data.sources || []);
                     this.speak(data.response);
                     await this.loadConversations();
-                    this.updateConversationTitle();
                 } else {
-                    this.addMessage('JARVIS', `Errore durante l'analisi: ${data.error}`, 'system');
+                    this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
                 }
             } catch (error) {
                 this.hideTypingIndicator();
-                this.addMessage('JARVIS', `Errore: ${error.message}`, 'system');
+                this.addMessage('JARVIS', `Errore: ${error.message}`, 'system', []);
             }
         };
-        
-        reader.onerror = (error) => {
-            console.error('Errore lettura file:', error);
-            this.addMessage('JARVIS', `Errore nella lettura del file: ${error.message}`, 'system');
-        };
-        
         reader.readAsText(file, 'UTF-8');
     }
-
+    
     async loadConversations() {
         try {
-            const response = await fetch(`${this.apiUrl}/conversations`);
+            const response = await fetch('/api/conversations', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
             const data = await response.json();
             if (data.success) {
                 this.conversations = data.conversations;
@@ -265,7 +265,7 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             console.error('Error loading conversations:', error);
         }
     }
-
+    
     renderConversationsDropdown() {
         if (!this.conversationsDropdown) return;
         
@@ -280,22 +280,10 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
                 if (displayTitle.length > 35) {
                     displayTitle = displayTitle.substring(0, 35) + '...';
                 }
-                const date = new Date(conv.updated_at).toLocaleString();
-                return `<option value="${conv.id}" ${this.currentConversationId === conv.id ? 'selected' : ''}>
-                    ${displayTitle} (${date})
-                </option>`;
+                return `<option value="${conv.id}" ${this.currentConversationId === conv.id ? 'selected' : ''}>${displayTitle}</option>`;
             }).join('');
-        
-        if (this.currentConversationId) {
-            this.conversationsDropdown.value = this.currentConversationId;
-        }
     }
-
-    async loadConversationFromDropdown(id) {
-        if (!id) return;
-        await this.loadConversation(parseInt(id));
-    }
-
+    
     renderConversationsList() {
         const container = document.getElementById('conversationsList');
         if (!container) return;
@@ -314,18 +302,20 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             </div>
         `).join('');
     }
-
+    
     async loadConversation(id) {
         try {
-            const response = await fetch(`${this.apiUrl}/conversations/${id}`);
+            const response = await fetch(`/api/conversations/${id}`, {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
             const data = await response.json();
             if (data.success) {
                 this.currentConversationId = id;
                 this.clearMessages();
                 
                 data.messages.forEach(msg => {
-                    const sender = msg.role === 'user' ? 'Tu' : 'JARVIS';
-                    this.addMessage(sender, msg.content, msg.role);
+                    const sources = msg.sources ? JSON.parse(msg.sources) : [];
+                    this.addMessage(msg.role === 'user' ? 'Tu' : 'JARVIS', msg.content, msg.role, sources);
                 });
                 
                 this.renderConversationsList();
@@ -339,12 +329,15 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             console.error('Error loading conversation:', error);
         }
     }
-
+    
     async deleteConversation(id) {
         if (!confirm('Eliminare questa conversazione?')) return;
         
         try {
-            await fetch(`${this.apiUrl}/conversations/${id}`, { method: 'DELETE' });
+            await fetch(`/api/conversations/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
             await this.loadConversations();
             if (this.currentConversationId === id) {
                 this.createNewChat();
@@ -353,21 +346,22 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             console.error('Error deleting conversation:', error);
         }
     }
-
+    
     async createNewChat() {
         try {
-            const response = await fetch(`${this.apiUrl}/chat/new`, {
+            const response = await fetch('/api/chat/new', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                },
                 body: JSON.stringify({})
             });
             const data = await response.json();
             this.currentConversationId = data.conversationId;
             this.clearMessages();
-            this.addMessage('JARVIS', 'Sistema pronto. Come posso assisterla, signore?', 'system');
-            
+            this.addMessage('JARVIS', `Sistema pronto. Come posso assisterla, ${this.currentUser.name}?`, 'assistant', []);
             await this.loadConversations();
-            this.updateConversationTitle();
             this.userInput.focus();
             
             if (window.innerWidth < 992) {
@@ -377,71 +371,28 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             console.error('Error creating chat:', error);
         }
     }
-
-    updateConversationTitle() {
-        if (!this.currentConversationId) return;
-        
-        const currentConv = this.conversations.find(c => c.id === this.currentConversationId);
-        if (currentConv && this.conversationsDropdown) {
-            const options = this.conversationsDropdown.options;
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].value == this.currentConversationId) {
-                    options[i].selected = true;
-                    break;
-                }
-            }
-        }
+    
+    loadConversationFromDropdown(id) {
+        if (!id) return;
+        this.loadConversation(parseInt(id));
     }
-
-    async updateConversationTitleWithFirstMessage(firstMessage) {
-        if (!this.currentConversationId) return;
-        
-        const title = firstMessage.length > 40 ? firstMessage.substring(0, 40) + '...' : firstMessage;
-        
-        try {
-            await this.loadConversations();
-            this.updateConversationTitle();
-        } catch (error) {
-            console.error('Errore aggiornamento titolo:', error);
-        }
-    }
-
-    updateActiveConversation() {
-        this.renderConversationsList();
-        this.renderConversationsDropdown();
-    }
-
+    
     async sendMessage() {
         const content = this.userInput.value.trim();
         if (!content) return;
         
-        this.addMessage('Tu', content, 'user');
+        this.addMessage('Tu', content, 'user', []);
         this.userInput.value = '';
         
         this.showTypingIndicator();
         
-        const lowerContent = content.toLowerCase();
-        if (lowerContent.includes('chi ti ha creato') || 
-            lowerContent.includes('chi ti ha programmato') ||
-            lowerContent.includes('chi è il tuo creatore') ||
-            lowerContent.includes('chi ti ha fatto') ||
-            lowerContent.includes('chi è antonio') ||
-            lowerContent.includes('chi è il tuo padrone') ||
-            lowerContent.includes('chi ti ha costruito')) {
-            
-            this.hideTypingIndicator();
-            const creatorResponse = "Sono stato creato da Antonio Pepice, la mente brillante dietro questo sistema JARVIS. Mi ha progettato per essere il tuo assistente AI personale, signore.";
-            this.addMessage('JARVIS', creatorResponse, 'assistant');
-            this.speak(creatorResponse);
-            
-            await this.updateConversationTitleWithFirstMessage(content);
-            return;
-        }
-        
         try {
-            const response = await fetch(`${this.apiUrl}/chat/history`, {
+            const response = await fetch('/api/chat/history', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                },
                 body: JSON.stringify({
                     conversationId: this.currentConversationId,
                     message: content
@@ -453,20 +404,164 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             
             if (data.success) {
                 this.currentConversationId = data.conversationId;
-                this.addMessage('JARVIS', data.response, 'assistant');
+                await this.typeMessage(data.response, data.sources || []);
                 this.speak(data.response);
-                
                 await this.loadConversations();
-                this.updateConversationTitle();
             } else {
-                this.addMessage('JARVIS', `Errore: ${data.error}`, 'system');
+                this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
             }
         } catch (error) {
             this.hideTypingIndicator();
-            this.addMessage('JARVIS', `Errore di connessione: ${error.message}`, 'system');
+            this.addMessage('JARVIS', `Errore di connessione: ${error.message}`, 'system', []);
         }
     }
-
+    
+    async typeMessage(content, sources) {
+        return new Promise((resolve) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system-message';
+            
+            const time = new Date().toLocaleTimeString();
+            const messageId = 'msg_' + Date.now();
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">JARVIS • ${time}</div>
+                <div class="message-content" id="${messageId}"></div>
+                <div class="message-sources">
+                    <div class="sources-toggle" onclick="document.getElementById('sources_${messageId}').classList.toggle('show')">
+                        🔍 Fonti verificate ▼
+                    </div>
+                    <div id="sources_${messageId}" class="sources-list">
+                        ${sources.map(s => `
+                            <div class="source-item">
+                                <span class="source-verified">✓</span>
+                                ${s.url ? `<a href="${s.url}" target="_blank" class="source-link">${s.title}</a>` : s.title}
+                                ${s.verified ? '<span style="color: #00ff00;"> (Verificata)</span>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            this.chatMessages.appendChild(messageDiv);
+            this.scrollToBottom();
+            
+            const contentElement = document.getElementById(messageId);
+            let i = 0;
+            contentElement.classList.add('typing');
+            
+            const interval = setInterval(() => {
+                if (i < content.length) {
+                    contentElement.innerHTML += content.charAt(i);
+                    this.scrollToBottom();
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    contentElement.classList.remove('typing');
+                    
+                    // Check for code blocks and add download button
+                    if (content.includes('```')) {
+                        this.addCodeDownloadButton(contentElement, content);
+                    }
+                    
+                    resolve();
+                }
+            }, 30);
+        });
+    }
+    
+    addCodeDownloadButton(element, content) {
+        const codeMatch = content.match(/```(\w+)\n([\s\S]*?)```/);
+        if (codeMatch) {
+            const language = codeMatch[1];
+            const code = codeMatch[2];
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'code-download-btn';
+            downloadBtn.innerHTML = '📥 Scarica Codice';
+            downloadBtn.onclick = () => this.downloadCode(code, language);
+            
+            element.parentElement.appendChild(downloadBtn);
+        }
+    }
+    
+    downloadCode(code, language) {
+        let extension = 'txt';
+        switch(language) {
+            case 'javascript': extension = 'js'; break;
+            case 'python': extension = 'py'; break;
+            case 'html': extension = 'html'; break;
+            case 'css': extension = 'css'; break;
+            case 'json': extension = 'json'; break;
+        }
+        
+        const blob = new Blob([code], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `jarvis_code.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
+    addMessage(sender, content, role, sources) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role === 'user' ? 'user-message' : 'system-message'}`;
+        
+        const time = new Date().toLocaleTimeString();
+        const messageId = 'msg_' + Date.now();
+        
+        let sourcesHtml = '';
+        if (sources && sources.length > 0) {
+            sourcesHtml = `
+                <div class="message-sources">
+                    <div class="sources-toggle" onclick="document.getElementById('sources_${messageId}').classList.toggle('show')">
+                        🔍 Fonti verificate ▼
+                    </div>
+                    <div id="sources_${messageId}" class="sources-list">
+                        ${sources.map(s => `
+                            <div class="source-item">
+                                <span class="source-verified">✓</span>
+                                ${s.url ? `<a href="${s.url}" target="_blank" class="source-link">${s.title}</a>` : s.title}
+                                ${s.verified ? '<span style="color: #00ff00;"> (Verificata)</span>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="message-header">${sender} • ${time}</div>
+            <div class="message-content">${this.formatMessage(content)}</div>
+            ${sourcesHtml}
+        `;
+        
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        // Add download button for code
+        if (content.includes('```')) {
+            this.addCodeDownloadButton(messageDiv.querySelector('.message-content'), content);
+        }
+    }
+    
+    formatMessage(content) {
+        content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+            return `<pre><code>${this.escapeHtml(code)}</code></pre>`;
+        });
+        content = content.replace(/\n/g, '<br>');
+        return content;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
     speak(text) {
         if (!text) return;
         
@@ -493,49 +588,13 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
             if (indicator) indicator.style.display = 'none';
         };
         
-        utterance.onerror = (event) => {
-            console.error('Speech error:', event);
-            this.isSpeaking = false;
-            const indicator = document.getElementById('speakingIndicator');
-            if (indicator) indicator.style.display = 'none';
-        };
-        
         this.synthesis.speak(utterance);
     }
-
-    addMessage(sender, content, type) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type === 'user' ? 'user-message' : 'system-message'}`;
-        
-        const time = new Date().toLocaleTimeString();
-        
-        messageDiv.innerHTML = `
-            <div class="message-header">${sender} • ${time}</div>
-            <div class="message-content">${this.formatMessage(content)}</div>
-        `;
-        
-        this.chatMessages.appendChild(messageDiv);
-        this.scrollToBottom();
-    }
-
-    formatMessage(content) {
-        content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-            return `<pre><code>${this.escapeHtml(code)}</code></pre>`;
-        });
-        content = content.replace(/\n/g, '<br>');
-        return content;
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
+    
     clearMessages() {
         this.chatMessages.innerHTML = '';
     }
-
+    
     showTypingIndicator() {
         const indicator = document.createElement('div');
         indicator.className = 'message system-message typing-indicator';
@@ -544,17 +603,100 @@ Analizza questo file. Cosa contiene? Spiegami cosa fa questo file in dettaglio. 
         this.chatMessages.appendChild(indicator);
         this.scrollToBottom();
     }
-
+    
     hideTypingIndicator() {
         const indicator = document.getElementById('typingIndicator');
         if (indicator) indicator.remove();
     }
-
+    
     scrollToBottom() {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
 }
 
+// Auth Functions
+function switchAuthTab(tab) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const tabs = document.querySelectorAll('.auth-tab');
+    
+    if (tab === 'login') {
+        loginForm.classList.add('active');
+        registerForm.classList.remove('active');
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+    } else {
+        loginForm.classList.remove('active');
+        registerForm.classList.add('active');
+        tabs[0].classList.remove('active');
+        tabs[1].classList.add('active');
+    }
+}
+
+// Login handler
+document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const messageDiv = document.getElementById('authMessage');
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            localStorage.setItem('jarvis_token', data.token);
+            window.jarvis = new JarvisInterface();
+            messageDiv.innerHTML = '<span style="color: #00ff00;">✅ Login effettuato!</span>';
+        } else {
+            messageDiv.innerHTML = `<span style="color: #ff4444;">❌ ${data.error}</span>`;
+        }
+    } catch (error) {
+        messageDiv.innerHTML = `<span style="color: #ff4444;">❌ Errore di connessione</span>`;
+    }
+});
+
+// Register handler
+document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('regName').value;
+    const surname = document.getElementById('regSurname').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    const messageDiv = document.getElementById('authMessage');
+    
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, surname, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            localStorage.setItem('jarvis_token', data.token);
+            window.jarvis = new JarvisInterface();
+            messageDiv.innerHTML = '<span style="color: #00ff00;">✅ Registrazione completata!</span>';
+        } else {
+            messageDiv.innerHTML = `<span style="color: #ff4444;">❌ ${data.error}</span>`;
+        }
+    } catch (error) {
+        messageDiv.innerHTML = `<span style="color: #ff4444;">❌ Errore di connessione</span>`;
+    }
+});
+
+function logout() {
+    localStorage.removeItem('jarvis_token');
+    window.location.reload();
+}
+
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     window.jarvis = new JarvisInterface();
 });
