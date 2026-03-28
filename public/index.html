@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>JARVIS - Iron Man AI</title>
+    <title>JARVIS - Iron Man AI - Sistema di Sicurezza Avanzato</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
 </head>
 <body>
     <div id="app">
@@ -20,6 +21,7 @@
             
             <div class="auth-box">
                 <div class="glow-text" style="font-size: 2.5rem; margin-bottom: 20px;">J.A.R.V.I.S.</div>
+                <div class="security-badge">🔐 Sistema di Sicurezza Avanzato</div>
                 
                 <div class="auth-tabs">
                     <button class="auth-tab active" onclick="switchAuthTab('login')">ACCEDI</button>
@@ -28,7 +30,7 @@
                 
                 <!-- Login Form -->
                 <form id="loginForm" class="auth-form active">
-                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <input type="email" id="loginEmail" placeholder="Email autorizzata" required>
                     <input type="password" id="loginPassword" placeholder="Password" required>
                     <button type="submit" class="send-button" style="width: 100%; padding: 12px;">ACCEDI</button>
                 </form>
@@ -37,12 +39,14 @@
                 <form id="registerForm" class="auth-form">
                     <input type="text" id="regName" placeholder="Nome" required>
                     <input type="text" id="regSurname" placeholder="Cognome" required>
-                    <input type="email" id="regEmail" placeholder="Email" required>
+                    <input type="email" id="regEmail" placeholder="Email (solo autorizzata)" required>
                     <input type="password" id="regPassword" placeholder="Password" required>
+                    <div class="security-note">⚠️ Solo l'email autorizzata può registrarsi</div>
                     <button type="submit" class="send-button" style="width: 100%; padding: 12px;">REGISTRATI</button>
                 </form>
                 
                 <div id="authMessage" class="auth-message"></div>
+                <div class="security-footer">🔒 Tutti i dati sono crittografati end-to-end</div>
             </div>
         </div>
         
@@ -60,7 +64,7 @@
                 <select id="conversationsDropdown" class="conversations-dropdown" onchange="window.jarvis.loadConversationFromDropdown(this.value)">
                     <option value="">-- Seleziona una conversazione --</option>
                 </select>
-                <button onclick="window.jarvis.createNewChat()" class="new-chat-btn" style="margin-left: 10px;">+ NUOVA</button>
+                <button onclick="window.jarvis.createNewChat()" class="new-chat-btn">+ NUOVA</button>
             </div>
             
             <!-- SIDEBAR MENU -->
@@ -88,13 +92,23 @@
                         <div class="status-indicator">
                             <span class="status-led"></span>
                             <span class="status-text">SISTEMA ONLINE</span>
+                            <span class="security-indicator">🔒 CRITTOGRAFIA ATTIVA</span>
                         </div>
                         <div class="creator-badge">Creato da Antonio Pepice</div>
-                        <button onclick="logout()" class="logout-btn">🚪 ESC</button>
+                        <div class="header-buttons">
+                            <button onclick="window.jarvis.showProfile()" class="profile-btn">👤 PROFILO</button>
+                            <button onclick="logout()" class="logout-btn">🚪 ESC</button>
+                        </div>
                     </div>
                     
                     <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages"></div>
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="welcome-message">
+                                <div class="welcome-icon">🤖</div>
+                                <div class="welcome-text">Benvenuto in JARVIS<br>Sistema di Sicurezza Avanzato</div>
+                                <div class="security-status">🔐 Crittografia End-to-End Attiva</div>
+                            </div>
+                        </div>
                         
                         <div class="input-container">
                             <button id="micBtn" class="mic-button" onclick="window.jarvis.startListening()">🎤</button>
@@ -112,19 +126,27 @@
                     </div>
                     
                     <div class="capabilities-panel">
-                        <div class="panel-title">CAPACITÀ</div>
+                        <div class="panel-title">CAPACITÀ AVANZATE</div>
                         <div class="capabilities-grid">
-                            <div class="capability">⚡ CODICE</div>
-                            <div class="capability">🌍 TRADUZIONE</div>
-                            <div class="capability">📝 RIASSUNTO</div>
-                            <div class="capability">🐛 DEBUG</div>
-                            <div class="capability">🎓 STUDIO</div>
-                            <div class="capability">💡 CREATIVITÀ</div>
-                            <div class="capability">📊 ANALISI</div>
-                            <div class="capability">🔊 VOCE</div>
+                            <div class="capability">🐍 CODICE PYTHON</div>
+                            <div class="capability">🌍 TRADUZIONE 50+ LINGUE</div>
+                            <div class="capability">📝 RIASSUNTO INTELLIGENTE</div>
+                            <div class="capability">🐛 DEBUG AVANZATO</div>
+                            <div class="capability">🎓 STUDIO E DIDATTICA</div>
+                            <div class="capability">💡 CREATIVITÀ E IDEe</div>
+                            <div class="capability">📊 ANALISI DATI</div>
+                            <div class="capability">🔊 COMANDI VOCALI</div>
                             <div class="capability">🎤 MICROFONO</div>
-                            <div class="capability">📎 FILE</div>
+                            <div class="capability">📎 ANALISI FILE</div>
+                            <div class="capability">🔐 2FA SUPPORT</div>
+                            <div class="capability">🔒 CRITTOGRAFIA</div>
                         </div>
+                    </div>
+                    
+                    <div class="security-footer-bar">
+                        <span>🔐 Crittografia </span>
+                        <span>📋 Audit Log Attivo</span>
+                        <span>👤 Solo Account Autorizzato</span>
                     </div>
                 </div>
             </div>
