@@ -8,13 +8,22 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "jsonwebtoken": "^9.0.0",
+    "axios": "^1.14.0",
     "bcryptjs": "^2.4.3",
-    "sqlite3": "^5.1.6"
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "jsonwebtoken": "^9.0.3",
+    "qrcode": "^1.5.4",
+    "speakeasy": "^2.0.0",
+    "sqlite3": "^5.1.7"
   },
-  "keywords": ["jarvis", "ai", "assistant", "ironman"],
+  "keywords": [
+    "jarvis",
+    "ai",
+    "assistant",
+    "ironman"
+  ],
   "author": "Antonio Pepice",
   "license": "MIT"
 }
