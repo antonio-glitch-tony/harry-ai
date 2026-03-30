@@ -869,30 +869,97 @@ body {
 /* ══════════════════════════════════════════════════════════
    HOLOGRAM — CHAT PAGE (Avengers: Age of Ultron)
 ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   HOLOGRAM — FULLSCREEN OVERLAY (copre tutta la chat)
+══════════════════════════════════════════════════════════ */
 .holo-jarvis {
     position: fixed;
-    bottom: 100px;
-    right: 30px;
-    z-index: 800;
+    inset: 0;
+    z-index: 2000;
+    background:
+        radial-gradient(ellipse at 40% 50%, rgba(0,60,160,0.55) 0%, transparent 65%),
+        radial-gradient(ellipse at 60% 50%, rgba(0,243,255,0.12) 0%, transparent 60%),
+        linear-gradient(135deg, #000010 0%, #000825 50%, #000510 100%);
     display: flex;
     flex-direction: column;
+    animation: none; /* niente floating — è fullscreen */
+}
+
+.holo-fullscreen-overlay {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.holo-top-bar {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    animation: holoFloat 4s ease-in-out infinite;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid rgba(0,243,255,0.15);
+    background: rgba(0,0,20,0.7);
+    flex-shrink: 0;
 }
-@keyframes holoFloat {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(-12px); }
+
+.holo-title-bar {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-shadow: 0 0 16px var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
-.holo-container {
+
+.holo-online-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 8px #00ff88;
+    animation: pulse 1.5s infinite;
+    display: inline-block;
+}
+
+.holo-close {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(0,243,255,0.3);
+    border-radius: 8px;
+    color: rgba(0,243,255,0.8);
+    padding: 8px 18px;
+    font-size: 0.78rem;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.holo-close:hover { background: rgba(255,50,50,0.2); color: #ff4444; border-color: #ff4444; }
+
+.holo-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    padding: 30px;
+    overflow: hidden;
+}
+
+/* Canvas wrap — ologramma */
+.holo-canvas-wrap {
     position: relative;
-    width: 200px; height: 200px;
+    width: 380px; height: 380px;
+    flex-shrink: 0;
 }
-.holo-container canvas {
+
+.holo-canvas-wrap canvas {
     position: absolute; top: 0; left: 0;
     border-radius: 50%;
-    filter: drop-shadow(0 0 18px rgba(0,243,255,0.75)) drop-shadow(0 0 45px rgba(0,100,255,0.4));
+    filter: drop-shadow(0 0 28px rgba(0,243,255,0.8)) drop-shadow(0 0 70px rgba(0,100,255,0.5));
 }
+
 .holo-rings { position: absolute; inset: 0; pointer-events: none; }
 .holo-ring {
     position: absolute;
@@ -901,9 +968,9 @@ body {
     top: 50%; left: 50%;
     transform: translate(-50%,-50%);
 }
-.hr1 { width: 212px; height: 212px; animation: ringPulse 2s ease-in-out infinite; }
-.hr2 { width: 228px; height: 228px; animation: ringPulse 2s 0.4s ease-in-out infinite; }
-.hr3 { width: 244px; height: 244px; animation: ringPulse 2s 0.8s ease-in-out infinite; }
+.hr1 { width: 400px; height: 400px; animation: ringPulse 2s ease-in-out infinite; }
+.hr2 { width: 424px; height: 424px; animation: ringPulse 2s 0.4s ease-in-out infinite; }
+.hr3 { width: 448px; height: 448px; animation: ringPulse 2s 0.8s ease-in-out infinite; }
 
 .holo-scanlines {
     position: absolute; inset: 0;
@@ -911,26 +978,103 @@ body {
     background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,10,0.05) 4px);
     pointer-events: none;
 }
-.holo-close {
-    position: absolute; top: 2px; right: 2px;
-    background: rgba(0,0,0,0.7);
+
+/* Chat panel ologramma — visibile solo nell'overlay */
+.holo-chat-panel {
+    flex: 1;
+    max-width: 480px;
+    height: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(0,10,40,0.7);
+    border: 1px solid rgba(0,243,255,0.18);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.holo-messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.holo-msg {
+    max-width: 90%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.holo-msg-user {
+    align-self: flex-end;
+    background: rgba(0,100,255,0.22);
+    border: 1px solid rgba(0,150,255,0.3);
+    color: #aaddff;
+}
+
+.holo-msg-jarvis {
+    align-self: flex-start;
+    background: rgba(0,243,255,0.07);
     border: 1px solid rgba(0,243,255,0.2);
-    border-radius: 50%;
-    color: rgba(0,243,255,0.6);
-    width: 24px; height: 24px;
-    font-size: 0.68rem;
+    color: var(--cyan);
+}
+
+.holo-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.holo-input {
+    flex: 1;
+    background: rgba(0,10,30,0.8);
+    border: 1px solid rgba(0,243,255,0.25);
+    border-radius: 8px;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.holo-input:focus { border-color: var(--cyan); }
+.holo-input::placeholder { color: rgba(0,243,255,0.35); }
+
+.holo-send-btn {
+    background: rgba(0,243,255,0.12);
+    border: 1px solid rgba(0,243,255,0.3);
+    border-radius: 8px;
+    color: var(--cyan);
+    width: 42px;
+    font-size: 1rem;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
 }
-.holo-close:hover { background: rgba(255,50,50,0.2); color: #ff4444; }
+.holo-send-btn:hover { background: rgba(0,243,255,0.25); box-shadow: 0 0 10px rgba(0,243,255,0.3); }
+
 .holo-label {
     font-family: 'Orbitron', monospace;
-    font-size: 0.58rem;
+    font-size: 0.55rem;
     letter-spacing: 3px;
-    color: rgba(0,243,255,0.7);
-    animation: pulse 2s infinite;
+    color: rgba(0,243,255,0.45);
+    text-align: center;
+    padding: 10px;
+    flex-shrink: 0;
 }
+
+/* ── Registro verifica / Google Auth (register form) ── */
+.twofa-label {
+    font-size: 0.78rem;
+    color: rgba(0,243,255,0.8);
+    letter-spacing: 1px;
+}
+
 
 /* ══════════════════════════════════════════════════════════
    INDICATORS
@@ -1028,9 +1172,15 @@ body {
     .hologram-ring { display: none; }
     .capabilities-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); }
     .chat-messages { height: 340px; }
-    .holo-jarvis { bottom: 80px; right: 10px; }
-    .holo-container { width: 130px; height: 130px; }
-    .holo-container canvas { width: 130px !important; height: 130px !important; }
+    /* Hologram fullscreen — responsive */
+    .holo-body { flex-direction: column; gap: 20px; padding: 16px; }
+    .holo-canvas-wrap { width: 220px; height: 220px; }
+    .holo-canvas-wrap canvas { width: 220px !important; height: 220px !important; }
+    .hr1 { width: 234px; height: 234px; }
+    .hr2 { width: 250px; height: 250px; }
+    .hr3 { width: 266px; height: 266px; }
+    .holo-chat-panel { max-width: 100%; height: 260px; }
+
     .container { padding: 12px; }
     .tfa-digit { width: 36px !important; height: 42px; font-size: 1.1rem !important; }
 }

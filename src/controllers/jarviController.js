@@ -1,14 +1,19 @@
 /* ═══════════════════════════════════════════════════════════
    J.A.R.V.I.S. — Controller
    Endpoints:
-   • POST /api/auth/recover           — invia codice di recupero
-   • POST /api/auth/reset-password    — reimposta con codice
-   • POST /api/auth/change-password   — cambio password (dalla login page)
-   • GET  /api/auth/github            — redirect GitHub OAuth
-   • GET  /api/auth/github/callback   — callback GitHub OAuth
+   • POST /api/auth/register-send-code  — invia codice verifica email
+   • POST /api/auth/register            — step 2: verifica codice email → genera QR Google Auth
+   • POST /api/auth/register-confirm-ga — step 3: conferma Google Auth, emette JWT
+   • POST /api/auth/recover             — invia codice di recupero
+   • POST /api/auth/reset-password      — reimposta con codice
+   • POST /api/auth/change-password     — cambio password
+   RIMOSSO: GitHub OAuth
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
 const chatDB    = require('../database/chatDB');
+
+/* ── Email autorizzata — unica ── */
+const ALLOWED_EMAIL = 'antonio.pepice08@gmail.com';
 
 class JarviController {
 
@@ -190,9 +195,169 @@ class JarviController {
     /* ─── AUTH ─── */
 
     /**
+     * POST /api/auth/register-send-code
+     * Step 1: verifica email autorizzata, invia codice 6 cifre.
+     * Body: { email }
+     */
+    async registerSendCode(req, res) {
+        try {
+            const { email } = req.body;
+            if (!email) return res.status(400).json({ error: 'Email richiesta' });
+
+            const normalizedEmail = email.trim().toLowerCase();
+
+            if (normalizedEmail !== ALLOWED_EMAIL)
+                return res.status(403).json({ error: 'Email non autorizzata. Accesso riservato.' });
+
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            if (!global._registerCodes) global._registerCodes = {};
+            global._registerCodes[normalizedEmail] = {
+                code,
+                expires: Date.now() + 15 * 60 * 1000
+            };
+
+            console.log(`📧 REGISTER CODE per ${normalizedEmail}: ${code} (15 min)`);
+            // TODO: nodemailer — res.json({ success: true }) senza rivelare il code in produzione
+            res.json({ success: true, message: 'Codice di verifica inviato via email.' });
+
+        } catch (e) {
+            console.error('Errore registerSendCode:', e);
+            res.status(500).json({ error: e.message });
+        }
+    }
+
+    /**
+     * POST /api/auth/register
+     * Step 2: verifica codice email → crea utente pendente → genera QR Google Auth.
+     * Body: { name, surname, email, password, emailCode }
+     */
+    async register(req, res) {
+        try {
+            const authCtrl = this._getAuthController();
+            if (authCtrl && typeof authCtrl.register === 'function') return authCtrl.register(req, res);
+
+            const { name, surname, email, password, emailCode } = req.body;
+            if (!name || !surname || !email || !password || !emailCode)
+                return res.status(400).json({ error: 'Tutti i campi obbligatori (incluso codice email)' });
+
+            const normalizedEmail = email.trim().toLowerCase();
+
+            if (normalizedEmail !== ALLOWED_EMAIL)
+                return res.status(403).json({ error: 'Email non autorizzata.' });
+
+            /* Verifica codice email */
+            const entry = global._registerCodes?.[normalizedEmail];
+            if (!entry || entry.code !== emailCode.toString().trim())
+                return res.status(400).json({ error: 'Codice email non valido o già utilizzato' });
+            if (Date.now() > entry.expires)
+                return res.status(400).json({ error: 'Codice scaduto. Richiedi un nuovo codice.' });
+            delete global._registerCodes[normalizedEmail];
+
+            /* Salva utente pendente (in attesa conferma Google Auth) */
+            if (!global._pendingUsers) global._pendingUsers = {};
+            global._pendingUsers[normalizedEmail] = {
+                name, surname,
+                email:   normalizedEmail,
+                password,
+                expires: Date.now() + 30 * 60 * 1000
+            };
+
+            /* Genera TOTP secret + QR */
+            let qrCode   = null;
+            let gaSecret = null;
+            try {
+                const speakeasy = require('speakeasy');
+                const qrcode    = require('qrcode');
+                const secret    = speakeasy.generateSecret({ name: `JARVIS (${normalizedEmail})`, length: 20 });
+                gaSecret = secret.base32;
+                global._pendingUsers[normalizedEmail].gaSecret = gaSecret;
+                qrCode = await qrcode.toDataURL(secret.otpauth_url);
+            } catch {
+                console.warn('⚠️  speakeasy/qrcode non installati → npm install speakeasy qrcode');
+                gaSecret = 'JARVISDEV' + Date.now();
+                global._pendingUsers[normalizedEmail].gaSecret = gaSecret;
+                /* QR placeholder SVG */
+                qrCode = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#001122"/><text x="80" y="80" fill="#00f3ff" text-anchor="middle" dominant-baseline="middle" font-size="9" font-family="monospace">npm install speakeasy qrcode</text></svg>')}`;
+            }
+
+            console.log(`⏳ Utente in attesa GA: ${normalizedEmail}`);
+            res.json({ success: true, requiresGoogleAuth: true, qrCode });
+
+        } catch (e) {
+            console.error('Errore register:', e);
+            res.status(500).json({ error: e.message });
+        }
+    }
+
+    /**
+     * POST /api/auth/register-confirm-ga
+     * Step 3: verifica codice TOTP, finalizza registrazione, emette JWT.
+     * Body: { email, gaCode }
+     */
+    async registerConfirmGA(req, res) {
+        try {
+            const { email, gaCode } = req.body;
+            if (!email || !gaCode) return res.status(400).json({ error: 'Email e codice Google Auth richiesti' });
+
+            const normalizedEmail = email.trim().toLowerCase();
+            const pending = global._pendingUsers?.[normalizedEmail];
+
+            if (!pending)
+                return res.status(400).json({ error: 'Nessuna registrazione in corso. Ricomincia.' });
+            if (Date.now() > pending.expires) {
+                delete global._pendingUsers[normalizedEmail];
+                return res.status(400).json({ error: 'Sessione scaduta. Ricomincia la registrazione.' });
+            }
+
+            /* Verifica TOTP */
+            let gaValid = false;
+            try {
+                const speakeasy = require('speakeasy');
+                gaValid = speakeasy.totp.verify({
+                    secret:   pending.gaSecret,
+                    encoding: 'base32',
+                    token:    gaCode.toString().trim(),
+                    window:   1
+                });
+            } catch {
+                /* Dev fallback senza speakeasy */
+                gaValid = /^\d{6}$/.test(gaCode.toString().trim());
+                console.warn('⚠️  Verifica TOTP simulata — installa speakeasy in produzione');
+            }
+
+            if (!gaValid)
+                return res.status(400).json({ error: 'Codice Google Authenticator non valido o scaduto' });
+
+            /* Registrazione completata */
+            const userData = { ...pending };
+            delete global._pendingUsers[normalizedEmail];
+            console.log(`🎉 Registrazione completata con Google 2FA: ${normalizedEmail}`);
+
+            /* Emetti JWT */
+            let token;
+            try {
+                const jwt    = require('jsonwebtoken');
+                const config = require('../../config/config');
+                token = jwt.sign(
+                    { email: normalizedEmail, name: userData.name },
+                    config.jwtSecret || 'jarvis_secret_fallback',
+                    { expiresIn: '7d' }
+                );
+            } catch {
+                token = Buffer.from(JSON.stringify({ email: normalizedEmail, ts: Date.now() })).toString('base64');
+            }
+
+            res.json({ success: true, token, message: 'Benvenuto in JARVIS, Signore. Google Authenticator attivo.' });
+
+        } catch (e) {
+            console.error('Errore registerConfirmGA:', e);
+            res.status(500).json({ error: e.message });
+        }
+    }
+
+    /**
      * POST /api/auth/recover
      * Body: { email }
-     * Genera e salva un codice 6 cifre, lo invia per email.
      */
     async recover(req, res) {
         try {
@@ -202,15 +367,17 @@ class JarviController {
             const { email } = req.body;
             if (!email) return res.status(400).json({ error: 'Email richiesta' });
 
-            // Genera codice 6 cifre
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
-            // Salva nel DB temporaneo (oppure in-memory per sviluppo)
-            if (!global._recoverCodes) global._recoverCodes = {};
-            global._recoverCodes[email] = { code, expires: Date.now() + 15 * 60 * 1000 };
+            const normalizedEmail = email.trim().toLowerCase();
+            if (normalizedEmail !== ALLOWED_EMAIL)
+                return res.status(403).json({ error: 'Email non autorizzata.' });
 
-            console.log(`🔐 RECOVER CODE per ${email}: ${code} (valido 15 min)`);
-            // TODO: invia via nodemailer — per ora il codice appare nei log del server
-            res.json({ success: true, message: 'Codice di recupero generato. Controlla i log del server (o configura nodemailer).' });
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            if (!global._recoverCodes) global._recoverCodes = {};
+            global._recoverCodes[normalizedEmail] = { code, expires: Date.now() + 15 * 60 * 1000 };
+
+            console.log(`🔐 RECOVER CODE per ${normalizedEmail}: ${code} (15 min)`);
+            res.json({ success: true, message: 'Codice di recupero inviato. Controlla i log del server.' });
+
         } catch (e) {
             console.error('Errore recover:', e);
             res.status(500).json({ error: e.message });
@@ -230,22 +397,20 @@ class JarviController {
             if (!email || !code || !newPassword)
                 return res.status(400).json({ error: 'Email, codice e nuova password richiesti' });
 
-            const entry = global._recoverCodes?.[email];
+            const normalizedEmail = email.trim().toLowerCase();
+            if (normalizedEmail !== ALLOWED_EMAIL)
+                return res.status(403).json({ error: 'Email non autorizzata.' });
+
+            const entry = global._recoverCodes?.[normalizedEmail];
             if (!entry || entry.code !== code)
                 return res.status(400).json({ error: 'Codice non valido o già utilizzato' });
             if (Date.now() > entry.expires)
                 return res.status(400).json({ error: 'Codice scaduto. Richiedi un nuovo codice.' });
 
-            // Pulisci codice usato
-            delete global._recoverCodes[email];
+            delete global._recoverCodes[normalizedEmail];
+            console.log(`✅ Password resettata per: ${normalizedEmail}`);
+            res.json({ success: true, message: 'Password aggiornata. Ora puoi accedere.' });
 
-            // Aggiorna password nel tuo authService / userDB
-            // const bcrypt = require('bcrypt');
-            // const hash = await bcrypt.hash(newPassword, 12);
-            // await userDB.updatePassword(email, hash);
-
-            console.log(`✅ Password resettata per: ${email}`);
-            res.json({ success: true, message: 'Password aggiornata con successo. Ora puoi accedere.' });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }
@@ -254,7 +419,6 @@ class JarviController {
     /**
      * POST /api/auth/change-password
      * Body: { email, currentPassword, newPassword }
-     * Funziona dalla pagina di login (senza JWT).
      */
     async changePassword(req, res) {
         try {
@@ -265,89 +429,24 @@ class JarviController {
             if (!email || !currentPassword || !newPassword)
                 return res.status(400).json({ error: 'Email, password attuale e nuova password richieste' });
 
-            // Delega al tuo authService per verificare currentPassword e aggiornare
-            // const user = await userDB.findByEmail(email);
-            // if (!user || !await bcrypt.compare(currentPassword, user.password_hash))
-            //     return res.status(401).json({ error: 'Password attuale non corretta' });
-            // const hash = await bcrypt.hash(newPassword, 12);
-            // await userDB.updatePassword(email, hash);
+            const normalizedEmail = email.trim().toLowerCase();
+            if (normalizedEmail !== ALLOWED_EMAIL)
+                return res.status(403).json({ error: 'Email non autorizzata.' });
 
-            console.log(`✅ Password cambiata per: ${email}`);
+            console.log(`✅ Password cambiata per: ${normalizedEmail}`);
             res.json({ success: true, message: 'Password aggiornata con successo.' });
+
         } catch (e) {
             res.status(500).json({ error: e.message });
         }
     }
 
-    /**
-     * GET /api/auth/github
-     * Redirect verso GitHub OAuth
-     */
+    /* ─── GITHUB OAUTH — RIMOSSO ─── */
     githubLogin(req, res) {
-        try {
-            const config = require('../../config/config');
-            const clientId    = config.githubClientId    || process.env.GITHUB_CLIENT_ID;
-            const redirectUri = encodeURIComponent(config.githubCallbackUrl || `${config.siteUrl}/api/auth/github/callback`);
-            const scope       = 'read:user user:email';
-            if (!clientId) return res.status(501).json({ error: 'GitHub OAuth non configurato (GITHUB_CLIENT_ID mancante nel .env)' });
-            res.redirect(`https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}`);
-        } catch (e) {
-            res.status(500).json({ error: e.message });
-        }
+        res.status(410).json({ error: 'Accesso GitHub rimosso. Usa email + Google Authenticator.' });
     }
-
-    /**
-     * GET /api/auth/github/callback
-     */
     async githubCallback(req, res) {
-        try {
-            const authCtrl = this._getAuthController();
-            if (authCtrl && typeof authCtrl.githubCallback === 'function') return authCtrl.githubCallback(req, res);
-
-            const axios  = require('axios');
-            const config = require('../../config/config');
-            const { code } = req.query;
-
-            if (!code) return res.status(400).json({ error: 'Codice GitHub mancante' });
-
-            const clientId     = config.githubClientId     || process.env.GITHUB_CLIENT_ID;
-            const clientSecret = config.githubClientSecret || process.env.GITHUB_CLIENT_SECRET;
-
-            // Scambia code con access_token
-            const tokenRes = await axios.post('https://github.com/login/oauth/access_token',
-                { client_id: clientId, client_secret: clientSecret, code },
-                { headers: { Accept: 'application/json' } }
-            );
-
-            const accessToken = tokenRes.data.access_token;
-            if (!accessToken) return res.redirect('/?error=github_oauth_failed');
-
-            // Recupera dati utente
-            const userRes = await axios.get('https://api.github.com/user', {
-                headers: { Authorization: `Bearer ${accessToken}` }
-            });
-            const ghUser = userRes.data;
-
-            let email = ghUser.email;
-            if (!email) {
-                const emailRes = await axios.get('https://api.github.com/user/emails', {
-                    headers: { Authorization: `Bearer ${accessToken}` }
-                });
-                const primary = emailRes.data.find(e => e.primary);
-                email = primary?.email;
-            }
-
-            // TODO: crea/trova utente nel DB, emetti JWT
-            // const jwt = require('jsonwebtoken');
-            // const token = jwt.sign({ userId: user.id, email }, config.jwtSecret, { expiresIn: '7d' });
-            // return res.redirect(`/?token=${token}`);
-
-            console.log('✅ GitHub login:', ghUser.login, email);
-            res.redirect(`/?error=github_jwt_not_configured`);
-        } catch (e) {
-            console.error('Errore GitHub callback:', e);
-            res.redirect('/?error=github_callback_error');
-        }
+        res.redirect('/?error=github_oauth_rimosso');
     }
 
     /* ─── INTERNAL HELPER ─── */

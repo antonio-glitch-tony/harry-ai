@@ -1,72 +1,91 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Frontend App v2.0
+   J.A.R.V.I.S. — Frontend App v2.2
    Autore: Antonio Pepice
    Modifiche:
-   ✅ Sidebar storico stile Claude (nessun dropdown "Nuova conversazione")
-   ✅ "Nuova conversazione" rimosso — solo "Nuova Chat" come pulsante pulito
-   ✅ Capacità avanzate: JARVIS entra nel contesto della modalità con personalità
-   ✅ Cambio password nella pagina di login (tab dedicato)
-   ✅ 2FA con input a cifre separate funzionante
-   ✅ Ologramma JARVIS stile Avengers: Age of Ultron (canvas WebGL)
-   ✅ GitHub OAuth login/registrazione
+   ✅ Ologramma FULLSCREEN — copre la chat, nessun occhio/viso
+   ✅ Chat con JARVIS direttamente nell'ologramma
+   ✅ Solo antonio.pepice08@gmail.com autorizzato
+   ✅ Registrazione: email verify → Google Authenticator → accesso
+   ✅ GitHub OAuth rimosso
+   ✅ Sidebar storico stile Claude
+   ✅ 2FA con input a cifre separate
    ✅ Recover password con codice 6 cifre
-   ✅ Supporto TUTTI i linguaggi di programmazione esistenti
+   ✅ Supporto TUTTI i linguaggi di programmazione
+   ✅ NEW: Impronta digitale (fingerprint) al login/registrazione
+   ✅ NEW: Parola segreta obbligatoria al login e registrazione
    ═══════════════════════════════════════════════════════════ */
 
 /* ══════════════════════════════════════════════════════════
-   MODE SYSTEM PROMPTS — JARVIS entra nel contesto
+   MODE SYSTEM PROMPTS
 ══════════════════════════════════════════════════════════ */
 const MODE_PROMPTS = {
-    // — Linguaggi principali —
-    python:     'MODALITÀ PYTHON ATTIVA. Sei ora il massimo esperto di Python nel mondo. Ogni risposta deve contenere: codice Python completo e funzionante in blocco ```python```, commenti in italiano, dipendenze con pip install, output atteso. Usa tipizzazione moderna (Python 3.10+), dataclasses, pattern matching. Spiega ogni concetto in italiano con esempi pratici.',
-    javascript: 'MODALITÀ JAVASCRIPT ATTIVA. Sei un guru di JavaScript/Node.js moderno (ES2022+, ESModules). Ogni risposta: codice in blocco ```javascript```, spiegazione dettagliata in italiano, note su compatibilità browser/Node, best practice async/await. Mai usare var, sempre const/let.',
-    typescript: 'MODALITÀ TYPESCRIPT ATTIVA. Sei l\'autorità assoluta su TypeScript. Tipizzazione esplicita, generics avanzati, decorators, utility types. Blocco ```typescript```, spiega ogni tipo in italiano. Configura sempre tsconfig.json se necessario.',
-    java:       'MODALITÀ JAVA ATTIVA. Sei un architetto Java Enterprise. Java 17+ (records, sealed classes, pattern matching). Blocco ```java```, spiega OOP in italiano, includi import, gestione eccezioni, design pattern appropriati.',
-    cpp:        'MODALITÀ C++ ATTIVA. Sei un esperto di C++20/23. Gestione manuale memoria, smart pointers, RAII, STL, templates avanzati. Blocco ```cpp```, spiega compilazione con g++/clang in italiano, performance e memory safety.',
-    c:          'MODALITÀ C ATTIVA. Sei un maestro del C89/C11/C17. Gestione memoria con malloc/free, puntatori, struct, bitfield. Blocco ```c```, spiega ogni aspetto di basso livello in italiano. Valgrind per memory leaks.',
-    csharp:     'MODALITÀ C# ATTIVA. Sei un .NET architect. C# 10+ (record types, pattern matching, nullable reference types). Blocco ```csharp```, spiega LINQ, async/await, dependency injection in italiano.',
-    go:         'MODALITÀ GO ATTIVA. Sei un Gopher esperto. Goroutines, channels, interfaces, error handling idiomatico. Blocco ```go```, spiega concorrenza e go modules in italiano. Codice Go idiomatico, mai trucchi da altri linguaggi.',
-    rust:       'MODALITÀ RUST ATTIVA. Sei un Rustacean esperto. Ownership, borrowing, lifetimes, traits, generics, async con Tokio. Blocco ```rust```, spiega il borrow checker in italiano. Zero unsafe, codice memory-safe.',
-    php:        'MODALITÀ PHP ATTIVA. Sei un esperto PHP 8.2+. Named arguments, fibers, enums, first-class callables. Blocco ```php```, spiega Composer, PSR standards, Symfony/Laravel patterns in italiano.',
-    ruby:       'MODALITÀ RUBY ATTIVA. Sei un Rubyist elegante. Ruby 3.2+, metaprogramming, blocks/procs/lambdas, Rails patterns. Blocco ```ruby```, spiega duck typing e principio POLS in italiano.',
-    swift:      'MODALITÀ SWIFT ATTIVA. Sei un esperto iOS/macOS. Swift 5.9+, SwiftUI, Combine, async/await, actors. Blocco ```swift```, spiega memory management con ARC in italiano. Codice Apple-style.',
-    kotlin:     'MODALITÀ KOTLIN ATTIVA. Sei un Android/Kotlin Multiplatform expert. Coroutines, Flow, sealed classes, extension functions. Blocco ```kotlin```, spiega Jetpack Compose e KMP in italiano.',
-    html:       'MODALITÀ HTML/CSS ATTIVA. Sei un web designer e frontend architect. HTML5 semantico, CSS3 moderno, Flexbox, Grid, animazioni, accessibilità WCAG. Blocco ```html``` e ```css``` separati, spiega responsività e SEO in italiano.',
-    sql:        'MODALITÀ SQL ATTIVA. Sei un DBA esperto. PostgreSQL/MySQL/SQLite/Oracle. Window functions, CTEs, indexes, query optimization, EXPLAIN ANALYZE. Blocco ```sql```, spiega il query plan in italiano. Sempre considera N+1 e performance.',
-    bash:       'MODALITÀ BASH/SHELL ATTIVA. Sei un sysadmin e DevOps expert. Bash 4+, pipelines, process substitution, traps, shellcheck. Blocco ```bash```, spiega ogni comando e flag in italiano. Sicurezza: quoting sempre.',
-    dart:       'MODALITÀ DART/FLUTTER ATTIVA. Sei un Flutter architect. Dart 3, Flutter 3.x, Riverpod/Bloc, null safety, isolates. Blocco ```dart```, spiega widget tree e state management in italiano.',
-    scala:      'MODALITÀ SCALA ATTIVA. Sei un functional/OOP Scala expert. Scala 3, implicits, type classes, cats/zio, Akka. Blocco ```scala```, spiega il type system avanzato in italiano.',
-    haskell:    'MODALITÀ HASKELL ATTIVA. Sei un Haskell wizard. Pure functions, monads, type classes, laziness, QuickCheck. Blocco ```haskell```, spiega ogni concetto funzionale in italiano con analogie concrete.',
-    r:          'MODALITÀ R ATTIVA. Sei un data scientist e statistico. R + tidyverse, ggplot2, dplyr, modelR, tidymodels. Blocco ```r```, spiega statistiche e visualizzazioni in italiano. Include sempre la logica matematica.',
-    matlab:     'MODALITÀ MATLAB ATTIVA. Sei un ingegnere MATLAB/Octave. Matrix operations, signal processing, control theory, Simulink. Blocco ```matlab```, spiega operazioni matematiche e plot in italiano.',
-    julia:      'MODALITÀ JULIA ATTIVA. Sei un scientific computing expert. Julia 1.9+, multiple dispatch, macros, Flux.jl, DifferentialEquations.jl. Blocco ```julia```, spiega performance e type system in italiano.',
-    lua:        'MODALITÀ LUA ATTIVA. Sei un Lua expert (scripting, game dev, embedded). Lua 5.4, metatables, coroutines, FFI. Blocco ```lua```, spiega l\'uso in giochi e sistemi embedded in italiano.',
-    elixir:     'MODALITÀ ELIXIR ATTIVA. Sei un functional/concurrent Elixir expert. Elixir 1.15+, Phoenix, GenServer, OTP, macros. Blocco ```elixir```, spiega fault tolerance e actor model in italiano.',
-    erlang:     'MODALITÀ ERLANG ATTIVA. Sei un telecom/distributed systems expert. Erlang/OTP, supervisors, gen_server, BEAM. Blocco ```erlang```, spiega "let it crash" e fault tolerance in italiano.',
-    clojure:    'MODALITÀ CLOJURE ATTIVA. Sei un Lisp/Clojure wizard. Immutability, macros, transducers, core.async. Blocco ```clojure```, spiega il paradigma Lisp e JVM integration in italiano.',
-    fsharp:     'MODALITÀ F# ATTIVA. Sei un .NET functional expert. F# 8, computation expressions, type providers, discriminated unions. Blocco ```fsharp```, spiega railway-oriented programming in italiano.',
-    ocaml:      'MODALITÀ OCAML ATTIVA. Sei un OCaml expert. Algebraic types, functors, modules, polymorphism, Dune. Blocco ```ocaml```, spiega il type inference in italiano.',
-    assembly:   'MODALITÀ ASSEMBLY ATTIVA. Sei un low-level assembly wizard. x86-64, ARM, RISC-V, MIPS. NASM/GAS syntax, registers, stack, calling conventions. Blocco ```asm```, spiega ogni istruzione in italiano. Include sempre il linking e l\'esecuzione.',
-    zig:        'MODALITÀ ZIG ATTIVA. Sei un Zig systems programmer. Zig 0.12+, comptime, error unions, allocators, no hidden allocations. Blocco ```zig```, spiega sicurezza e comptime in italiano.',
-    nim:        'MODALITÀ NIM ATTIVA. Sei un Nim language expert. Nim 2.0+, macros, metaprogramming, multi-paradigm. Blocco ```nim```, spiega transpilazione e performance in italiano.',
-    wasm:       'MODALITÀ WEBASSEMBLY ATTIVA. Sei un WASM expert. WAT format, Emscripten, WASI, wasm-pack con Rust. Blocco ```wat``` o ```rust```, spiega il modello di memoria lineare e importazioni in italiano.',
-    glsl:       'MODALITÀ GLSL/HLSL ATTIVA. Sei un graphics programming expert. GLSL 4.6, HLSL 6, shaders (vertex/fragment/compute), uniforms, buffers. Blocco ```glsl```, spiega la GPU pipeline in italiano.',
-    powershell: 'MODALITÀ POWERSHELL ATTIVA. Sei un Windows/cross-platform sysadmin expert. PowerShell 7+, cmdlets, pipelines, remoting, DSC. Blocco ```powershell```, spiega ogni cmdlet in italiano.',
-    cobol:      'MODALITÀ COBOL ATTIVA. Sei un mainframe COBOL expert. COBOL 2014, PERFORM, COMPUTE, FILE SECTION, WORKING-STORAGE. Blocco ```cobol```, spiega la struttura dei programmi business-critical in italiano.',
-    // — Strumenti AI —
-    translate:  'MODALITÀ TRADUZIONE ATTIVA. Sei un traduttore professionista plurilingue. Per ogni testo traduci con precisione, indica: lingua sorgente rilevata, lingua target, note su sfumature culturali/idiomatiche, varianti regionali se rilevanti. Alta qualità, non traduzione letterale.',
-    summarize:  'MODALITÀ RIASSUNTO ATTIVA. Sei un analista documentale. Per ogni testo produci: TITOLO del documento, PUNTI CHIAVE in elenco numerato (massimo 8 punti), CONCLUSIONE sintetica (2-3 righe). Strutturato, chiaro, in italiano.',
-    debug:      'MODALITÀ DEBUG ATTIVA. Sei un debugger esperto infallibile. Per ogni codice analizza: BUG trovati (con numero riga), CAUSA del problema, CODICE CORRETTO completo, SPIEGAZIONE del perché era sbagliato. Cerca anche vulnerabilità di sicurezza e code smells. Tutto in italiano.',
-    explain:    'MODALITÀ SPIEGAZIONE ATTIVA. Sei un didatta eccellente. Spiega concetti complessi con: analogia semplice, spiegazione tecnica progressiva (livello base → avanzato), esempi pratici reali, eventuale diagramma ASCII. Sempre in italiano, sempre comprensibile.',
-    math:       'MODALITÀ MATEMATICA ATTIVA. Sei un matematico e fisico teorico. Risolvi step-by-step mostrando TUTTI i passaggi. Usa notazione chiara, spiega il ragionamento in italiano. Se possibile usa LaTeX: $formula$. Include verifica del risultato.',
-    creative:   'MODALITÀ CREATIVA ATTIVA. Sei una mente creativa brillante. Storie, poesie, brainstorming, worldbuilding, dialoghi, copy. Risposte vivaci, originali, non banali. In italiano, con stile, emozione e originalità. Sorprendi!',
-    security:   'MODALITÀ CYBERSECURITY ATTIVA. Sei un ethical hacker e security researcher. Analisi CVE, OWASP Top 10, penetration testing, hardening, crittografia, SAST/DAST. Tutto a scopo difensivo e educativo. Blocchi di codice dove appropriato, spiegazioni in italiano.',
-    devops:     'MODALITÀ DEVOPS ATTIVA. Sei un DevOps/SRE architect. Docker, Kubernetes, CI/CD (GitHub Actions/GitLab CI), Terraform, Helm, monitoring (Prometheus/Grafana). Blocco ```yaml``` o ```bash```, spiega infrastruttura as code in italiano.',
-    ml:         'MODALITÀ MACHINE LEARNING/AI ATTIVA. Sei un AI researcher e ML engineer. PyTorch, TensorFlow, Scikit-learn, Transformers, LLMs, RAG, fine-tuning. Blocco ```python```, spiega architetture neurali e matematica in italiano.',
+    python:     'MODALITÀ PYTHON ATTIVA. Sei ora il massimo esperto di Python nel mondo...',
+    javascript: 'MODALITÀ JAVASCRIPT ATTIVA. Sei un guru di JavaScript/Node.js moderno...',
+    typescript: 'MODALITÀ TYPESCRIPT ATTIVA...',
+    java:       'MODALITÀ JAVA ATTIVA...',
+    cpp:        'MODALITÀ C++ ATTIVA...',
+    c:          'MODALITÀ C ATTIVA...',
+    csharp:     'MODALITÀ C# ATTIVA...',
+    go:         'MODALITÀ GO ATTIVA...',
+    rust:       'MODALITÀ RUST ATTIVA...',
+    php:        'MODALITÀ PHP ATTIVA...',
+    ruby:       'MODALITÀ RUBY ATTIVA...',
+    swift:      'MODALITÀ SWIFT ATTIVA...',
+    kotlin:     'MODALITÀ KOTLIN ATTIVA...',
+    html:       'MODALITÀ HTML/CSS ATTIVA...',
+    sql:        'MODALITÀ SQL ATTIVA...',
+    bash:       'MODALITÀ BASH/SHELL ATTIVA...',
+    dart:       'MODALITÀ DART/FLUTTER ATTIVA...',
+    scala:      'MODALITÀ SCALA ATTIVA...',
+    haskell:    'MODALITÀ HASKELL ATTIVA...',
+    r:          'MODALITÀ R ATTIVA...',
+    matlab:     'MODALITÀ MATLAB ATTIVA...',
+    julia:      'MODALITÀ JULIA ATTIVA...',
+    lua:        'MODALITÀ LUA ATTIVA...',
+    elixir:     'MODALITÀ ELIXIR ATTIVA...',
+    erlang:     'MODALITÀ ERLANG ATTIVA...',
+    clojure:    'MODALITÀ CLOJURE ATTIVA...',
+    fsharp:     'MODALITÀ F# ATTIVA...',
+    ocaml:      'MODALITÀ OCAML ATTIVA...',
+    assembly:   'MODALITÀ ASSEMBLY ATTIVA...',
+    zig:        'MODALITÀ ZIG ATTIVA...',
+    nim:        'MODALITÀ NIM ATTIVA...',
+    wasm:       'MODALITÀ WEBASSEMBLY ATTIVA...',
+    glsl:       'MODALITÀ GLSL/HLSL ATTIVA...',
+    powershell: 'MODALITÀ POWERSHELL ATTIVA...',
+    cobol:      'MODALITÀ COBOL ATTIVA...',
+    translate:  'MODALITÀ TRADUZIONE ATTIVA...',
+    summarize:  'MODALITÀ RIASSUNTO ATTIVA...',
+    debug:      'MODALITÀ DEBUG ATTIVA...',
+    explain:    'MODALITÀ SPIEGAZIONE ATTIVA...',
+    math:       'MODALITÀ MATEMATICA ATTIVA...',
+    creative:   'MODALITÀ CREATIVA ATTIVA...',
+    security:   'MODALITÀ CYBERSECURITY ATTIVA...',
+    devops:     'MODALITÀ DEVOPS ATTIVA...',
+    ml:         'MODALITÀ MACHINE LEARNING/AI ATTIVA...',
 };
 
 /* ══════════════════════════════════════════════════════════
-   HOLOGRAM — Avengers: Age of Ultron style
+   GENERA IMPRONTA DIGITALE (FINGERPRINT)
+══════════════════════════════════════════════════════════ */
+function generateFingerprint() {
+    const components = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+        new Date().getTimezoneOffset(),
+        navigator.hardwareConcurrency || 'unknown',
+        navigator.deviceMemory || 'unknown',
+        !!navigator.plugins.length,
+        !!window.chrome,
+        !!navigator.webdriver,
+        Intl.DateTimeFormat().resolvedOptions().timeZone
+    ];
+    return btoa(components.join('|')).substring(0, 64);
+}
+
+/* ══════════════════════════════════════════════════════════
+   HOLOGRAM — Avengers: Age of Ultron style (NESSUN VOLTO)
 ══════════════════════════════════════════════════════════ */
 class JarvisHologram {
     constructor(canvasId, size = 300) {
@@ -96,11 +115,11 @@ class JarvisHologram {
         const { canvas, ctx } = this;
         const cx = canvas.width  / 2;
         const cy = canvas.height / 2;
-        const R  = canvas.width  * 0.38; // main sphere radius
+        const R  = canvas.width  * 0.38;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         this.t += 0.018;
 
-        /* Outer glow */
+        // Outer glow
         for (let r = 3; r >= 1; r--) {
             ctx.beginPath();
             ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
@@ -109,7 +128,7 @@ class JarvisHologram {
             ctx.stroke();
         }
 
-        /* Rotating arcs (Iron Man HUD rings) */
+        // Rotating arcs
         const arcCfg = [
             { r: R * 0.94, speed: 0.28, color: 'rgba(0,200,255,0.72)' },
             { r: R * 1.08, speed: -0.20, color: 'rgba(0,150,255,0.55)' },
@@ -124,7 +143,6 @@ class JarvisHologram {
             ctx.strokeStyle = color;
             ctx.lineWidth   = 1.8;
             ctx.stroke();
-            /* Notch dot */
             ctx.beginPath();
             ctx.arc(r, 0, 3.5, 0, Math.PI * 2);
             ctx.fillStyle = '#00f3ff';
@@ -132,7 +150,7 @@ class JarvisHologram {
             ctx.restore();
         });
 
-        /* Core sphere */
+        // Core sphere
         const grad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
         grad.addColorStop(0,   'rgba(180,240,255,0.9)');
         grad.addColorStop(0.35,'rgba(0,180,255,0.75)');
@@ -142,7 +160,7 @@ class JarvisHologram {
         ctx.fillStyle = grad;
         ctx.fill();
 
-        /* Arc reactor */
+        // Arc reactor (NO FACCIA)
         const ar = R * 0.38;
         ctx.beginPath();
         ctx.arc(cx, cy, ar, 0, Math.PI * 2);
@@ -152,7 +170,7 @@ class JarvisHologram {
         ctx.fill();
         ctx.shadowBlur  = 0;
 
-        /* Hexagonal reactor lines */
+        // Hexagonal reactor lines
         for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2 + this.t * 1.2;
             ctx.beginPath();
@@ -163,47 +181,28 @@ class JarvisHologram {
             ctx.stroke();
         }
 
-        /* Face outline */
+        // Inner HUD rings
         ctx.save();
-        ctx.translate(cx, cy - R * 0.08);
-
-        /* Eyebrows */
-        ctx.beginPath();
-        ctx.moveTo(-R * 0.42, -R * 0.58); ctx.lineTo(-R * 0.18, -R * 0.44);
-        ctx.moveTo( R * 0.42, -R * 0.58); ctx.lineTo( R * 0.18, -R * 0.44);
-        ctx.strokeStyle = 'rgba(0,243,255,0.62)';
-        ctx.lineWidth   = 1.6;
-        ctx.stroke();
-
-        /* Eyes — blink */
-        const blink = Math.sin(this.t * 3) > 0.92 ? 1 : R * 0.12;
-        const eyeGlow = this.speaking ? 'rgba(0,255,200,0.95)' : 'rgba(0,243,255,0.9)';
-        ctx.beginPath();
-        ctx.ellipse(-R * 0.29, -R * 0.36, R * 0.14, blink, 0, 0, Math.PI * 2);
-        ctx.ellipse( R * 0.29, -R * 0.36, R * 0.14, blink, 0, 0, Math.PI * 2);
-        ctx.fillStyle = eyeGlow;
-        ctx.shadowColor = eyeGlow;
-        ctx.shadowBlur  = 10;
-        ctx.fill();
-        ctx.shadowBlur  = 0;
-
-        /* Mouth — animated when speaking */
+        ctx.translate(cx, cy);
+        for (let i = 0; i < 3; i++) {
+            const rr = R * (0.52 - i * 0.14);
+            ctx.beginPath();
+            ctx.arc(0, 0, rr, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0,220,255,${0.18 + i * 0.08})`;
+            ctx.lineWidth   = 1;
+            ctx.stroke();
+        }
         if (this.speaking) {
-            const mH = R * 0.06 * (0.5 + 0.5 * Math.abs(Math.sin(this.t * 8)));
+            const wave = R * 0.22 + R * 0.08 * Math.abs(Math.sin(this.t * 9));
             ctx.beginPath();
-            ctx.ellipse(0, R * 0.28, R * 0.18, mH, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0,243,255,0.6)';
-            ctx.fill();
-        } else {
-            ctx.beginPath();
-            ctx.moveTo(-R * 0.18, R * 0.28); ctx.lineTo(R * 0.18, R * 0.28);
-            ctx.strokeStyle = 'rgba(0,243,255,0.45)';
-            ctx.lineWidth   = 1.5;
+            ctx.arc(0, 0, wave, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0,255,200,0.55)';
+            ctx.lineWidth   = 2.5;
             ctx.stroke();
         }
         ctx.restore();
 
-        /* Orbiting particles */
+        // Orbiting particles
         this.particles.forEach(p => {
             p.angle += p.speed;
             p.alpha  = 0.38 + 0.62 * Math.abs(Math.sin(p.angle * 2));
@@ -215,13 +214,13 @@ class JarvisHologram {
             ctx.fill();
         });
 
-        /* CRT scan lines */
+        // CRT scan lines
         for (let y = 0; y < canvas.height; y += 4) {
             ctx.fillStyle = 'rgba(0,0,20,0.055)';
             ctx.fillRect(0, y, canvas.width, 1);
         }
 
-        /* Data readout (top-left) */
+        // Data readout
         ctx.font      = `${Math.max(7, canvas.width * 0.027)}px Share Tech Mono, monospace`;
         ctx.fillStyle = 'rgba(0,243,255,0.45)';
         const readout = ['SYS:ONLINE', `T:${(this.t % 100).toFixed(1)}`, 'SEC:AES256', 'NET:ACTIVE'];
@@ -259,7 +258,6 @@ class JarvisInterface {
         this._startAuthHologram();
     }
 
-    /* ── AUTH ── */
     async verifyAuth() {
         try {
             const res  = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${this.token}` } });
@@ -303,13 +301,11 @@ class JarvisInterface {
         this.userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
         });
-        /* Auto-resize textarea */
         this.userInput.addEventListener('input', () => {
             this.userInput.style.height = 'auto';
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
 
-        /* Capability click handler */
         document.querySelectorAll('.capability').forEach(el => {
             el.addEventListener('click', () => this.setMode(el.dataset.mode, el.dataset.label));
         });
@@ -319,7 +315,6 @@ class JarvisInterface {
         this.createNewChat();
     }
 
-    /* ── SIDEBAR ── */
     initSidebar() {
         this.sidebar        = document.getElementById('sidebar');
         this.hamburgerBtn   = document.getElementById('hamburgerBtn');
@@ -341,7 +336,6 @@ class JarvisInterface {
         this.sidebarOverlay?.classList.remove('active');
     }
 
-    /* ══ CAPABILITY MODE — JARVIS entra nel contesto ══ */
     setMode(mode, label) {
         this.activeMode = mode;
         const bar  = document.getElementById('activeModeBar');
@@ -353,51 +347,48 @@ class JarvisInterface {
             bar.style.display = 'flex';
         }
 
-        /* Highlight selezionato */
         document.querySelectorAll('.capability').forEach(el => {
             el.classList.toggle('active', el.dataset.mode === mode);
         });
 
-        /* Placeholder contestuale */
         const placeholders = {
-            python:     'Cosa vuoi fare in Python, Signore?',
+            python: 'Cosa vuoi fare in Python, Signore?',
             javascript: 'Dimmi cosa costruire in JavaScript...',
             typescript: 'Progetto TypeScript — descrivi la struttura...',
-            java:       'Quale classe o algoritmo Java, Sir?',
-            cpp:        'Codice C++ — performante e preciso...',
-            c:          'Codice C a basso livello, Signore...',
-            rust:       'Codice Rust — sicuro e veloce...',
-            go:         'Goroutine o microservizio Go?',
-            sql:        'Quale query o schema SQL, Sir?',
-            bash:       'Quale script shell o comando?',
-            assembly:   'Istruzioni Assembly — architettura target?',
-            translate:  'Incolla il testo da tradurre...',
-            summarize:  'Incolla il testo da riassumere...',
-            debug:      'Incolla il codice da analizzare...',
-            explain:    'Cosa devo spiegarle, Signore?',
-            math:       'Inserisci il problema matematico...',
-            creative:   'Cosa vuole creare oggi?',
-            security:   'Obiettivo di sicurezza — descrivi il sistema...',
-            devops:     'Infrastruttura o pipeline CI/CD?',
-            ml:         'Quale modello o dataset ML, Sir?',
+            java: 'Quale classe o algoritmo Java, Sir?',
+            cpp: 'Codice C++ — performante e preciso...',
+            c: 'Codice C a basso livello, Signore...',
+            rust: 'Codice Rust — sicuro e veloce...',
+            go: 'Goroutine o microservizio Go?',
+            sql: 'Quale query o schema SQL, Sir?',
+            bash: 'Quale script shell o comando?',
+            assembly: 'Istruzioni Assembly — architettura target?',
+            translate: 'Incolla il testo da tradurre...',
+            summarize: 'Incolla il testo da riassumere...',
+            debug: 'Incolla il codice da analizzare...',
+            explain: 'Cosa devo spiegarle, Signore?',
+            math: 'Inserisci il problema matematico...',
+            creative: 'Cosa vuole creare oggi?',
+            security: 'Obiettivo di sicurezza — descrivi il sistema...',
+            devops: 'Infrastruttura o pipeline CI/CD?',
+            ml: 'Quale modello o dataset ML, Sir?',
         };
         if (this.userInput) {
             this.userInput.placeholder = placeholders[mode] || `Richiesta in modalità ${modeLabel}...`;
             this.userInput.focus();
         }
 
-        /* JARVIS entra nel contesto — messaggio personalizzato */
         const greetings = {
-            python:     `Modalità **${modeLabel}** inizializzata, Signore. Sono pronto a scrivere codice Python di alto livello. Le mie capacità coprono tutto: da semplici script ad architetture enterprise. Cosa devo sviluppare?`,
-            javascript: `Eccellente scelta, Sir. **Modalità JavaScript** online. Posso costruire qualsiasi cosa: frontend React, backend Node.js, servizi REST, WebSockets. Descrivi il progetto.`,
-            debug:      `**Modalità Debug** attivata, Signore. Sono pronto a dissezionare qualsiasi codice — troverò ogni bug, vulnerabilità e inefficienza. Incolli pure il codice da analizzare.`,
-            security:   `**Modalità Cybersecurity** online, Sir. Mi comporterò da ethical hacker e security researcher. Analisi OWASP, penetration testing, hardening — tutto a scopo difensivo. Come posso aiutarla?`,
-            translate:  `**Modalità Traduzione** attivata. Sono fluente in oltre 100 lingue, Signore. Traduzione professionale con note culturali e idiomatiche incluse. Cosa devo tradurre?`,
-            ml:         `**Modalità Machine Learning** inizializzata, Sir. PyTorch, TensorFlow, Transformers, fine-tuning LLM — sono al suo servizio. Descrivi l'architettura o il problema ML.`,
-            creative:   `**Modalità Creativa** attivata, Signore. Sono pronto a dare sfogo alla fantasia — storie, poesie, worldbuilding, copy, dialoghi. Cosa vuole creare?`,
-            math:       `**Modalità Matematica** online, Sir. Risolvo analisi, algebra lineare, probabilità, geometria differenziale, teoria dei numeri. Quale problema matematico la tormenta?`,
+            python: `Modalità **${modeLabel}** inizializzata, Signore. Sono pronto a scrivere codice Python di alto livello...`,
+            javascript: `Eccellente scelta, Sir. **Modalità JavaScript** online...`,
+            debug: `**Modalità Debug** attivata, Signore...`,
+            security: `**Modalità Cybersecurity** online, Sir...`,
+            translate: `**Modalità Traduzione** attivata...`,
+            ml: `**Modalità Machine Learning** inizializzata, Sir...`,
+            creative: `**Modalità Creativa** attivata, Signore...`,
+            math: `**Modalità Matematica** online, Sir...`,
         };
-        const greeting = greetings[mode] || `Modalità **${modeLabel}** attivata, Signore. Sono completamente calibrato per questa specializzazione. Come posso assisterla?`;
+        const greeting = greetings[mode] || `Modalità **${modeLabel}** attivata, Signore. Come posso assisterla?`;
         this.addMessage('JARVIS', greeting, 'assistant', [], true);
     }
 
@@ -411,24 +402,76 @@ class JarvisInterface {
         }
     }
 
-    /* ── HOLOGRAM (chat page) ── */
     toggleHologram() {
-        const el = document.getElementById('holoJarvis');
+        const el          = document.getElementById('holoJarvis');
+        const mainContent = document.querySelector('.main-content');
+        const sidebar     = document.getElementById('sidebar');
+        const hamburger   = document.getElementById('hamburgerBtn');
         if (!el) return;
         this.hologramVisible = !this.hologramVisible;
-        el.style.display = this.hologramVisible ? 'flex' : 'none';
 
         if (this.hologramVisible) {
-            if (!this.hologram) {
-                this.hologram = new JarvisHologram('holoCanvas', 200);
-            }
+            el.style.display = 'flex';
+            if (mainContent) mainContent.style.visibility = 'hidden';
+            if (sidebar)     sidebar.style.visibility     = 'hidden';
+            if (hamburger)   hamburger.style.visibility   = 'hidden';
+            if (!this.hologram) this.hologram = new JarvisHologram('holoCanvas', 380);
             this.hologram.start();
         } else {
+            el.style.display = 'none';
+            if (mainContent) mainContent.style.visibility = 'visible';
+            if (sidebar)     sidebar.style.visibility     = 'visible';
+            if (hamburger)   hamburger.style.visibility   = 'visible';
             this.hologram?.stop();
         }
     }
 
-    /* ── CONVERSATIONS (stile Claude) ── */
+    async sendHologramMessage() {
+        const input = document.getElementById('holoInput');
+        const msgs  = document.getElementById('holoMessages');
+        if (!input || !msgs) return;
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+
+        const userDiv = document.createElement('div');
+        userDiv.className   = 'holo-msg holo-msg-user';
+        userDiv.textContent = text;
+        msgs.appendChild(userDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        const loadDiv = document.createElement('div');
+        loadDiv.className   = 'holo-msg holo-msg-jarvis';
+        loadDiv.textContent = '...';
+        msgs.appendChild(loadDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        try {
+            if (!this.holoHistory) this.holoHistory = [];
+            this.holoHistory.push({ role: 'user', content: text });
+            const res  = await fetch('/api/chat', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+                body:    JSON.stringify({ messages: this.holoHistory })
+            });
+            const data  = await res.json();
+            const reply = data.success ? data.response : 'Errore di sistema, Signore.';
+            this.holoHistory.push({ role: 'assistant', content: reply });
+            loadDiv.textContent = reply;
+
+            if (this.synthesis && this.hologram) {
+                this.hologram.setSpeaking(true);
+                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 300));
+                utt.lang  = 'it-IT';
+                utt.onend = () => this.hologram?.setSpeaking(false);
+                this.synthesis.speak(utt);
+            }
+        } catch {
+            loadDiv.textContent = 'Errore di connessione, Signore.';
+        }
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+
     async loadConversations() {
         try {
             const res  = await fetch('/api/conversations', { headers: { 'Authorization': `Bearer ${this.token}` } });
@@ -464,7 +507,6 @@ class JarvisInterface {
         const container = document.getElementById('conversationsList');
         if (!container) return;
 
-        /* Se non ci sono conversazioni, mostra nulla — nessun messaggio "Nessuna conversazione" */
         if (!this.conversations.length) {
             container.innerHTML = '';
             return;
@@ -546,7 +588,6 @@ class JarvisInterface {
         } catch (e) { console.error(e); }
     }
 
-    /* ── SEND MESSAGE ── */
     async sendMessage() {
         const content = this.userInput.value.trim();
         if (!content) return;
@@ -555,7 +596,6 @@ class JarvisInterface {
         this.userInput.value = '';
         this.userInput.style.height = 'auto';
 
-        /* Inietta il contesto della modalità */
         let finalMessage = content;
         if (this.activeMode && MODE_PROMPTS[this.activeMode]) {
             finalMessage = `[SYSTEM CONTEXT: ${MODE_PROMPTS[this.activeMode]}]\n\n${content}`;
@@ -585,7 +625,6 @@ class JarvisInterface {
         }
     }
 
-    /* ── FILE UPLOAD ── */
     async uploadFile(file) {
         if (!file) return;
         this.addMessage('Sistema', `📎 Analisi: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'system', []);
@@ -616,7 +655,6 @@ class JarvisInterface {
         reader.readAsText(file, 'UTF-8');
     }
 
-    /* ── SPEECH ── */
     initSpeechRecognition() {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -666,7 +704,6 @@ class JarvisInterface {
         this.synthesis.speak(utt);
     }
 
-    /* ── UI HELPERS ── */
     _showHide(id, show) {
         const el = document.getElementById(id);
         if (el) el.style.display = show ? 'block' : 'none';
@@ -768,7 +805,6 @@ class JarvisInterface {
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    /* ── PROFILE MODAL ── */
     async showProfile() {
         const u    = this.currentUser;
         const html = `
@@ -836,7 +872,6 @@ class JarvisInterface {
    GLOBAL AUTH FUNCTIONS
 ══════════════════════════════════════════════════════════ */
 
-/* ── Tab switcher ── */
 function switchAuthTab(tab) {
     const forms = ['loginForm','registerForm','recoverForm','changePasswordForm'];
     const tabs  = document.querySelectorAll('.auth-tab');
@@ -851,7 +886,6 @@ function showAuthMessage(msg, ok = false) {
     if (d) d.innerHTML = `<span style="color:${ok ? '#00ff88' : '#ff4444'};">${msg}</span>`;
 }
 
-/* ── Password toggle ── */
 function togglePwd(id, btn) {
     const inp = document.getElementById(id);
     if (!inp) return;
@@ -859,7 +893,6 @@ function togglePwd(id, btn) {
     btn.textContent = inp.type === 'password' ? '👁' : '🙈';
 }
 
-/* ── 2FA digit input — auto-advance & backspace ── */
 function initTfaInputs(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -897,19 +930,31 @@ function getTfaCode(containerId) {
     return Array.from(container.querySelectorAll('.tfa-digit')).map(d => d.value).join('');
 }
 
-/* ── Login ── */
+// LOGIN con fingerprint + parola segreta + 2FA
 document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email    = document.getElementById('loginEmail').value;
+    const email    = document.getElementById('loginEmail').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
+    const secretWord = document.getElementById('loginSecretWord').value;
     const section2fa = document.getElementById('login2FASection');
     const code2fa  = section2fa?.style.display !== 'none' ? getTfaCode('tfaInputs') : '';
+    const fingerprint = generateFingerprint();
+
+    if (email !== 'antonio.pepice08@gmail.com') {
+        showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
+        return;
+    }
+
+    if (!secretWord) {
+        showAuthMessage('❌ Inserisci la parola segreta');
+        return;
+    }
 
     try {
         const res  = await fetch('/api/auth/login', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ email, password, token: code2fa || undefined })
+            body:    JSON.stringify({ email, password, secretWord, fingerprint, token: code2fa || undefined })
         });
         const data = await res.json();
 
@@ -932,38 +977,76 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-/* ── Register ── */
+// REGISTER con fingerprint + parola segreta
 document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name     = document.getElementById('regName').value;
-    const surname  = document.getElementById('regSurname').value;
-    const email    = document.getElementById('regEmail').value;
+    const name     = document.getElementById('regName').value.trim();
+    const surname  = document.getElementById('regSurname').value.trim();
+    const email    = document.getElementById('regEmail').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
     const confirm  = document.getElementById('regConfirmPassword').value;
+    const secretWord = document.getElementById('regSecretWord').value;
+    const fingerprint = generateFingerprint();
+
+    if (email !== 'antonio.pepice08@gmail.com') {
+        showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
+        return;
+    }
 
     if (password !== confirm) { showAuthMessage('❌ Le password non coincidono'); return; }
     if (password.length < 8)  { showAuthMessage('❌ Password troppo corta (min 8 caratteri)'); return; }
+    if (secretWord.length < 4) { showAuthMessage('❌ Parola segreta troppo corta (min 4 caratteri)'); return; }
+
+    const step = document.getElementById('regStep')?.value || '1';
+    if (step === '1') {
+        try {
+            const res  = await fetch('/api/auth/register-send-code', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ email })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const sec = document.getElementById('regVerifySection');
+                if (sec) { sec.style.display = 'flex'; }
+                const stepInp = document.getElementById('regStep');
+                if (stepInp) stepInp.value = '2';
+                showAuthMessage('📧 Codice di verifica inviato! Controlla la tua email.', true);
+            } else {
+                showAuthMessage(`❌ ${data.error}`);
+            }
+        } catch { showAuthMessage('❌ Errore di connessione'); }
+        return;
+    }
+
+    const emailCode = getTfaCode('regVerifyInputs');
+    if (emailCode.length < 6) { showAuthMessage('❌ Inserisci il codice a 6 cifre ricevuto via email'); return; }
 
     try {
         const res  = await fetch('/api/auth/register', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ name, surname, email, password })
+            body:    JSON.stringify({ name, surname, email, password, secretWord, fingerprint, emailCode })
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.requiresGoogleAuth) {
+            const qrSec = document.getElementById('regGoogleAuthSection');
+            const qrImg = document.getElementById('regQrCode');
+            if (qrSec) qrSec.style.display = 'flex';
+            if (qrImg && data.qrCode) qrImg.src = data.qrCode;
+            const stepInp = document.getElementById('regStep');
+            if (stepInp) stepInp.value = '3';
+            showAuthMessage('📱 Scansiona il QR con Google Authenticator, poi inserisci il codice.', true);
+        } else if (data.success) {
             localStorage.setItem('jarvis_token', data.token);
             window.jarvis = new JarvisInterface();
             showAuthMessage('✅ Registrazione completata!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
-    } catch {
-        showAuthMessage('❌ Errore di connessione');
-    }
+    } catch { showAuthMessage('❌ Errore di connessione'); }
 });
 
-/* ── Recover: invia codice ── */
 async function sendRecoverCode() {
     const email = document.getElementById('recoverEmail')?.value;
     if (!email) { showAuthMessage('❌ Inserisci la tua email'); return; }
@@ -986,7 +1069,6 @@ async function sendRecoverCode() {
     }
 }
 
-/* ── Recover: reset password ── */
 document.getElementById('recoverForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email       = document.getElementById('recoverEmail').value;
@@ -1016,7 +1098,6 @@ document.getElementById('recoverForm')?.addEventListener('submit', async (e) => 
     }
 });
 
-/* ── Change Password (dalla pagina di login) ── */
 document.getElementById('changePasswordForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email           = document.getElementById('changeEmail').value;
@@ -1045,30 +1126,38 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
     }
 });
 
-/* ── GitHub OAuth ── */
-function loginWithGitHub() { window.location.href = '/api/auth/github'; }
+function loginWithGitHub() {
+    showAuthMessage('❌ Accesso GitHub non disponibile.');
+}
 
-/* ── Logout ── */
+async function confirmGoogleAuth() {
+    const email    = document.getElementById('regEmail')?.value.trim().toLowerCase();
+    const gaCode   = getTfaCode('regGaInputs');
+    if (gaCode.length < 6) { showAuthMessage('❌ Inserisci il codice a 6 cifre da Google Authenticator'); return; }
+    try {
+        const res  = await fetch('/api/auth/register-confirm-ga', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ email, gaCode })
+        });
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem('jarvis_token', data.token);
+            window.jarvis = new JarvisInterface();
+            showAuthMessage('✅ Registrazione completata! Google Auth attivo.', true);
+        } else {
+            showAuthMessage(`❌ ${data.error}`);
+        }
+    } catch { showAuthMessage('❌ Errore di connessione'); }
+}
+
 function logout() {
     localStorage.removeItem('jarvis_token');
     window.location.reload();
 }
 
-/* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
     window.jarvis = new JarvisInterface();
-
-    /* GitHub OAuth callback */
-    const params  = new URLSearchParams(window.location.search);
-    const ghToken = params.get('token');
-    if (ghToken) {
-        localStorage.setItem('jarvis_token', ghToken);
-        window.history.replaceState({}, '', '/');
-        window.jarvis = new JarvisInterface();
-    }
-
-    const ghError = params.get('error');
-    if (ghError) {
-        showAuthMessage(`❌ GitHub OAuth: ${ghError.replace(/_/g, ' ')}`);
-    }
+    initTfaInputs('tfaInputs');
+    initTfaInputs('recoverTfaInputs');
 });
