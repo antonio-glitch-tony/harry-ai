@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>J.A.R.V.I.S. - Sistema di Sicurezza Avanzato</title>
+    <title>J.A.R.V.I.S. - Sistema di Sicurezza Avanzato v4.0</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
@@ -13,20 +13,12 @@
 
     <!-- ══════════════════════════════════ AUTH PAGE ══════════════════════════════════ -->
     <div id="authPage" class="auth-container">
-
-        <!-- JARVIS Hologram -->
         <div class="jarvis-hologram">
             <div class="hologram-container">
                 <canvas id="hologramCanvas" width="300" height="300"></canvas>
                 <div class="hologram-ring ring-1"></div>
                 <div class="hologram-ring ring-2"></div>
                 <div class="hologram-ring ring-3"></div>
-                <div class="hologram-particles">
-                    <div class="particle"></div><div class="particle"></div>
-                    <div class="particle"></div><div class="particle"></div>
-                    <div class="particle"></div><div class="particle"></div>
-                    <div class="particle"></div><div class="particle"></div>
-                </div>
             </div>
             <div class="hologram-text">J.A.R.V.I.S.</div>
             <div class="hologram-sub">Just A Rather Very Intelligent System</div>
@@ -35,11 +27,9 @@
             </div>
         </div>
 
-        <!-- Auth Box -->
         <div class="auth-box">
-            <div class="security-badge">🔐 Sistema di Sicurezza Avanzato v2.0</div>
+            <div class="security-badge">🔐 Sistema di Sicurezza Avanzato v4.0 | Antonio Pepice</div>
 
-            <!-- TABS -->
             <div class="auth-tabs">
                 <button class="auth-tab active"  onclick="switchAuthTab('login')">ACCEDI</button>
                 <button class="auth-tab"          onclick="switchAuthTab('register')">REGISTRATI</button>
@@ -47,14 +37,12 @@
                 <button class="auth-tab"          onclick="switchAuthTab('changePassword')">PASSWORD</button>
             </div>
 
-            <!-- ── LOGIN ── -->
             <form id="loginForm" class="auth-form active">
                 <input type="email"    id="loginEmail"    placeholder="Email autorizzata" required>
                 <div class="password-wrap">
                     <input type="password" id="loginPassword" placeholder="Password" required>
                     <button type="button" class="eye-btn" onclick="togglePwd('loginPassword',this)">👁</button>
                 </div>
-                <!-- Parola Segreta -->
                 <div class="password-wrap">
                     <input type="password" id="loginSecretWord" placeholder="Parola Segreta" required>
                     <button type="button" class="eye-btn" onclick="togglePwd('loginSecretWord',this)">👁</button>
@@ -74,7 +62,6 @@
                 <button type="submit" class="send-button" style="width:100%;padding:12px;">ACCEDI</button>
             </form>
 
-            <!-- ── REGISTER ── -->
             <form id="registerForm" class="auth-form">
                 <input type="text"     id="regName"            placeholder="Nome" required>
                 <input type="text"     id="regSurname"         placeholder="Cognome" required>
@@ -87,30 +74,13 @@
                     <input type="password" id="regConfirmPassword" placeholder="Conferma Password" required>
                     <button type="button" class="eye-btn" onclick="togglePwd('regConfirmPassword',this)">👁</button>
                 </div>
-                <!-- Parola Segreta (obbligatoria) -->
                 <div class="password-wrap">
                     <input type="password" id="regSecretWord" placeholder="Parola Segreta (min 4 caratteri)" required>
                     <button type="button" class="eye-btn" onclick="togglePwd('regSecretWord',this)">👁</button>
                 </div>
-                <div class="security-note">⚠️ Solo email autorizzata — Verifica in 2 step + Parola Segreta</div>
-                <input type="hidden" id="regStep" value="1">
+                <div class="security-note">⚠️ Solo email autorizzata — Verifica in 2 step + Parola Segreta + Fingerprint SHA-256</div>
                 <button type="submit" class="send-button" style="width:100%;padding:12px;">REGISTRATI</button>
 
-                <!-- Step 2: Codice verifica email -->
-                <div id="regVerifySection" style="display:none;flex-direction:column;gap:10px;margin-top:12px;">
-                    <div class="twofa-label">📧 Codice di verifica ricevuto via email (6 cifre)</div>
-                    <div class="twofa-inputs" id="regVerifyInputs">
-                        <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
-                        <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
-                        <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
-                        <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
-                        <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
-                        <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
-                    </div>
-                    <div class="twofa-hint">Inserisci il codice ricevuto via email, poi clicca REGISTRATI di nuovo</div>
-                </div>
-
-                <!-- Step 3: QR Google Authenticator -->
                 <div id="regGoogleAuthSection" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:12px;">
                     <div class="twofa-label">📱 Scansiona con Google Authenticator</div>
                     <img id="regQrCode" src="" alt="QR Code" style="width:160px;height:160px;border:2px solid var(--primary);border-radius:8px;">
@@ -127,11 +97,10 @@
                 </div>
             </form>
 
-            <!-- ── RECOVER ── -->
             <form id="recoverForm" class="auth-form">
-                <p class="form-desc">Inserisci la tua email per ricevere il codice di recupero (6 cifre).</p>
+                <p class="form-desc">Inserisci la tua email per il recupero.</p>
                 <input type="email" id="recoverEmail" placeholder="Email account" required>
-                <button type="button" onclick="sendRecoverCode()" class="send-button secondary" style="width:100%;padding:12px;">📧 INVIA CODICE</button>
+                <button type="button" onclick="sendRecoverCode()" class="send-button secondary" style="width:100%;padding:12px;">📧 INVIA RICHIESTA</button>
                 <div id="recoverCodeSection" style="display:none;margin-top:12px;display:flex;flex-direction:column;gap:10px;">
                     <div class="twofa-inputs" id="recoverTfaInputs">
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
@@ -153,7 +122,6 @@
                 </div>
             </form>
 
-            <!-- ── CHANGE PASSWORD ── -->
             <form id="changePasswordForm" class="auth-form">
                 <p class="form-desc">Cambia la password del tuo account JARVIS.</p>
                 <input type="email"    id="changeEmail"           placeholder="La tua Email" required>
@@ -172,11 +140,10 @@
                 <button type="submit" class="send-button" style="width:100%;padding:12px;">🔒 AGGIORNA PASSWORD</button>
             </form>
 
-            <!-- Messaggio feedback -->
             <div id="authMessage" class="auth-message"></div>
 
             <div class="security-footer">
-                🔐 AES-256 · TLS 1.3 · 2FA Google Authenticator · Fingerprint · Parola Segreta
+                🔐 AES-256 · TLS 1.3 · 2FA Google Authenticator · Fingerprint SHA-256 · Parola Segreta
             </div>
         </div>
     </div>
@@ -184,12 +151,10 @@
     <!-- ══════════════════════════════════ CHAT PAGE ══════════════════════════════════ -->
     <div id="chatPage" style="display:none; position:relative;">
 
-        <!-- Hamburger -->
         <button class="hamburger-btn" id="hamburgerBtn" onclick="window.jarvis.toggleSidebar()">
             <span></span><span></span><span></span>
         </button>
 
-        <!-- SIDEBAR -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">J.A.R.V.I.S.</div>
@@ -202,7 +167,6 @@
         </div>
         <div id="sidebarOverlay" class="sidebar-overlay" onclick="window.jarvis.toggleSidebar()"></div>
 
-        <!-- Main Content -->
         <div class="main-content">
             <div class="scan-line"></div>
             <div class="container">
@@ -214,8 +178,8 @@
                         <span class="status-led"></span>
                         <span class="status-text">SISTEMA ONLINE</span>
                         <span class="security-indicator">🔒 CRITTOGRAFIA ATTIVA</span>
+                        <span class="creator-badge">Creato da Antonio Pepice</span>
                     </div>
-                    <div class="creator-badge">Creato da Antonio Pepice</div>
                     <div class="header-buttons">
                         <button onclick="window.jarvis.toggleHologram()" class="holo-btn">🌀 OLOGRAMMA</button>
                         <button onclick="window.jarvis.showProfile()" class="profile-btn">👤 PROFILO</button>
@@ -227,8 +191,8 @@
                     <div class="chat-messages" id="chatMessages">
                         <div class="welcome-message">
                             <div class="welcome-icon">🤖</div>
-                            <div class="welcome-text">Benvenuto in JARVIS<br>Sistema di Sicurezza Avanzato</div>
-                            <div class="security-status">🔐 Crittografia End-to-End Attiva</div>
+                            <div class="welcome-text">Benvenuto in JARVIS<br>Sistema di Sicurezza Avanzato v4.0</div>
+                            <div class="security-status">🔐 Crittografia End-to-End Attiva | Fingerprint SHA-256</div>
                         </div>
                     </div>
 
@@ -249,54 +213,45 @@
                     </div>
                 </div>
 
-                <!-- Capabilities Panel -->
-                <div class="capabilities-panel">
-                    <div class="panel-title">⚡ CAPACITÀ AVANZATE — clicca per attivare la modalità</div>
-                    <div class="capabilities-grid">
-                        <div class="capability" data-mode="python"      data-label="Modalità Python"       >🐍 PYTHON</div>
-                        <div class="capability" data-mode="javascript"  data-label="Modalità JavaScript"   >📜 JAVASCRIPT</div>
-                        <div class="capability" data-mode="typescript"  data-label="Modalità TypeScript"   >📘 TYPESCRIPT</div>
-                        <div class="capability" data-mode="java"        data-label="Modalità Java"         >☕ JAVA</div>
-                        <div class="capability" data-mode="cpp"         data-label="Modalità C++"          >⚙️ C++</div>
-                        <div class="capability" data-mode="c"           data-label="Modalità C"            >🔩 C</div>
-                        <div class="capability" data-mode="csharp"      data-label="Modalità C#"           >🔷 C#</div>
-                        <div class="capability" data-mode="go"          data-label="Modalità Go"           >🐹 GO</div>
-                        <div class="capability" data-mode="rust"        data-label="Modalità Rust"         >🦀 RUST</div>
-                        <div class="capability" data-mode="php"         data-label="Modalità PHP"          >🐘 PHP</div>
-                        <div class="capability" data-mode="ruby"        data-label="Modalità Ruby"         >💎 RUBY</div>
-                        <div class="capability" data-mode="swift"       data-label="Modalità Swift"        >🍎 SWIFT</div>
-                        <div class="capability" data-mode="kotlin"      data-label="Modalità Kotlin"       >📱 KOTLIN</div>
-                        <div class="capability" data-mode="html"        data-label="Modalità HTML/CSS"     >🌐 HTML/CSS</div>
-                        <div class="capability" data-mode="sql"         data-label="Modalità SQL"          >🗄️ SQL</div>
-                        <div class="capability" data-mode="bash"        data-label="Modalità Bash/Shell"   >💻 BASH</div>
-                        <div class="capability" data-mode="dart"        data-label="Modalità Dart/Flutter" >🎯 DART</div>
-                        <div class="capability" data-mode="scala"       data-label="Modalità Scala"        >⚡ SCALA</div>
-                        <div class="capability" data-mode="haskell"     data-label="Modalità Haskell"      >λ HASKELL</div>
-                        <div class="capability" data-mode="r"           data-label="Modalità R"            >📊 R</div>
-                        <div class="capability" data-mode="matlab"      data-label="Modalità MATLAB"       >🔬 MATLAB</div>
-                        <div class="capability" data-mode="julia"       data-label="Modalità Julia"        >🌀 JULIA</div>
-                        <div class="capability" data-mode="lua"         data-label="Modalità Lua"          >🌙 LUA</div>
-                        <div class="capability" data-mode="elixir"      data-label="Modalità Elixir"       >💧 ELIXIR</div>
-                        <div class="capability" data-mode="erlang"      data-label="Modalità Erlang"       >📡 ERLANG</div>
-                        <div class="capability" data-mode="clojure"     data-label="Modalità Clojure"      >🔮 CLOJURE</div>
-                        <div class="capability" data-mode="fsharp"      data-label="Modalità F#"           >🔸 F#</div>
-                        <div class="capability" data-mode="ocaml"       data-label="Modalità OCaml"        >🐪 OCAML</div>
-                        <div class="capability" data-mode="assembly"    data-label="Modalità Assembly"     >🔧 ASSEMBLY</div>
-                        <div class="capability" data-mode="zig"         data-label="Modalità Zig"          >⚡ ZIG</div>
-                        <div class="capability" data-mode="nim"         data-label="Modalità Nim"          >👑 NIM</div>
-                        <div class="capability" data-mode="wasm"        data-label="Modalità WebAssembly"  >🕸️ WASM</div>
-                        <div class="capability" data-mode="glsl"        data-label="Modalità GLSL/HLSL"    >🎮 GLSL</div>
-                        <div class="capability" data-mode="powershell"  data-label="Modalità PowerShell"   >🖥️ POWERSHELL</div>
-                        <div class="capability" data-mode="cobol"       data-label="Modalità COBOL"        >📼 COBOL</div>
-                        <div class="capability" data-mode="translate"   data-label="Modalità Traduzione"   >🌍 TRADUZIONE</div>
-                        <div class="capability" data-mode="summarize"   data-label="Modalità Riassunto"    >📝 RIASSUNTO</div>
-                        <div class="capability" data-mode="debug"       data-label="Modalità Debug"        >🐛 DEBUG</div>
-                        <div class="capability" data-mode="explain"     data-label="Modalità Spiegazione"  >📚 SPIEGAZIONE</div>
-                        <div class="capability" data-mode="math"        data-label="Modalità Matematica"   >∑ MATEMATICA</div>
-                        <div class="capability" data-mode="creative"    data-label="Modalità Creativa"     >🎨 CREATIVA</div>
-                        <div class="capability" data-mode="security"    data-label="Modalità Cybersecurity">🛡️ SECURITY</div>
-                        <div class="capability" data-mode="devops"      data-label="Modalità DevOps"       >🚀 DEVOPS</div>
-                        <div class="capability" data-mode="ml"          data-label="Modalità Machine Learning">🧠 ML/AI</div>
+                <!-- MENU A TENDINA PER LE CAPACITÀ AVANZATE -->
+                <div class="capabilities-dropdown-container">
+                    <div class="capabilities-dropdown" id="capabilitiesDropdown">
+                        <button class="dropdown-btn">
+                            <span class="dropdown-icon">⚡</span> Seleziona Modalità <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-group">
+                                <div class="dropdown-group-title">💻 LINGUAGGI DI PROGRAMMAZIONE</div>
+                                <div class="dropdown-item" data-mode="python" data-label="Python">🐍 Python</div>
+                                <div class="dropdown-item" data-mode="javascript" data-label="JavaScript">📜 JavaScript</div>
+                                <div class="dropdown-item" data-mode="typescript" data-label="TypeScript">📘 TypeScript</div>
+                                <div class="dropdown-item" data-mode="java" data-label="Java">☕ Java</div>
+                                <div class="dropdown-item" data-mode="cpp" data-label="C++">⚙️ C++</div>
+                                <div class="dropdown-item" data-mode="c" data-label="C">🔩 C</div>
+                                <div class="dropdown-item" data-mode="csharp" data-label="C#">🔷 C#</div>
+                                <div class="dropdown-item" data-mode="go" data-label="Go">🐹 Go</div>
+                                <div class="dropdown-item" data-mode="rust" data-label="Rust">🦀 Rust</div>
+                                <div class="dropdown-item" data-mode="php" data-label="PHP">🐘 PHP</div>
+                                <div class="dropdown-item" data-mode="ruby" data-label="Ruby">💎 Ruby</div>
+                                <div class="dropdown-item" data-mode="swift" data-label="Swift">🍎 Swift</div>
+                                <div class="dropdown-item" data-mode="kotlin" data-label="Kotlin">📱 Kotlin</div>
+                                <div class="dropdown-item" data-mode="html" data-label="HTML/CSS">🌐 HTML/CSS</div>
+                                <div class="dropdown-item" data-mode="sql" data-label="SQL">🗄️ SQL</div>
+                                <div class="dropdown-item" data-mode="bash" data-label="Bash">💻 Bash</div>
+                            </div>
+                            <div class="dropdown-group">
+                                <div class="dropdown-group-title">🤖 FUNZIONI SPECIALI</div>
+                                <div class="dropdown-item" data-mode="translate" data-label="Traduzione">🌍 Traduzione</div>
+                                <div class="dropdown-item" data-mode="summarize" data-label="Riassunto">📝 Riassunto</div>
+                                <div class="dropdown-item" data-mode="debug" data-label="Debug">🐛 Debug</div>
+                                <div class="dropdown-item" data-mode="explain" data-label="Spiegazione">📚 Spiegazione</div>
+                                <div class="dropdown-item" data-mode="math" data-label="Matematica">∑ Matematica</div>
+                                <div class="dropdown-item" data-mode="creative" data-label="Creativa">🎨 Creativa</div>
+                                <div class="dropdown-item" data-mode="security" data-label="Cybersecurity">🛡️ Security</div>
+                                <div class="dropdown-item" data-mode="devops" data-label="DevOps">🚀 DevOps</div>
+                                <div class="dropdown-item" data-mode="ml" data-label="Machine Learning">🧠 ML/AI</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -306,13 +261,14 @@
                     <span>👤 Account Autorizzato</span>
                     <span>🔑 2FA Attivo</span>
                     <span>📱 Google Auth</span>
-                    <span>🆔 Fingerprint</span>
+                    <span>🆔 Fingerprint SHA-256</span>
                     <span>🔤 Parola Segreta</span>
+                    <span>👨‍💻 Antonio Pepice</span>
                 </div>
             </div>
         </div>
 
-        <!-- Ologramma JARVIS fullscreen -->
+        <!-- Ologramma JARVIS fullscreen con voice input -->
         <div id="holoJarvis" class="holo-jarvis" style="display:none;">
             <div class="holo-fullscreen-overlay">
                 <div class="holo-top-bar">
@@ -332,13 +288,15 @@
                     <div class="holo-chat-panel">
                         <div id="holoMessages" class="holo-messages"></div>
                         <div class="holo-input-row">
-                            <input type="text" id="holoInput" class="holo-input" placeholder="Parla con JARVIS..."
+                            <button id="holoMicBtn" class="holo-mic-btn" onclick="window.jarvis.startHoloListening()">🎤</button>
+                            <input type="text" id="holoInput" class="holo-input" placeholder="Parla o scrivi con JARVIS..."
                                 onkeydown="if(event.key==='Enter') window.jarvis.sendHologramMessage()">
                             <button class="holo-send-btn" onclick="window.jarvis.sendHologramMessage()">▶</button>
                         </div>
+                        <div class="holo-voice-hint">🎤 Clicca sul microfono per parlare con JARVIS</div>
                     </div>
                 </div>
-                <div class="holo-label">J.A.R.V.I.S. — Sistema Operativo Avanzato</div>
+                <div class="holo-label">J.A.R.V.I.S. — Sistema Operativo Avanzato | Creato da Antonio Pepice</div>
             </div>
         </div>
 

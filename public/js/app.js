@@ -1,74 +1,62 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Frontend App v2.2
+   J.A.R.V.I.S. — Frontend App v4.0
    Autore: Antonio Pepice
-   Modifiche:
-   ✅ Ologramma FULLSCREEN — copre la chat, nessun occhio/viso
-   ✅ Chat con JARVIS direttamente nell'ologramma
-   ✅ Solo antonio.pepice08@gmail.com autorizzato
-   ✅ Registrazione: email verify → Google Authenticator → accesso
-   ✅ GitHub OAuth rimosso
-   ✅ Sidebar storico stile Claude
-   ✅ 2FA con input a cifre separate
-   ✅ Recover password con codice 6 cifre
-   ✅ Supporto TUTTI i linguaggi di programmazione
-   ✅ NEW: Impronta digitale (fingerprint) al login/registrazione
-   ✅ NEW: Parola segreta obbligatoria al login e registrazione
    ═══════════════════════════════════════════════════════════ */
 
 /* ══════════════════════════════════════════════════════════
    MODE SYSTEM PROMPTS
 ══════════════════════════════════════════════════════════ */
 const MODE_PROMPTS = {
-    python:     'MODALITÀ PYTHON ATTIVA. Sei ora il massimo esperto di Python nel mondo...',
+    python: 'MODALITÀ PYTHON ATTIVA. Sei ora il massimo esperto di Python nel mondo...',
     javascript: 'MODALITÀ JAVASCRIPT ATTIVA. Sei un guru di JavaScript/Node.js moderno...',
     typescript: 'MODALITÀ TYPESCRIPT ATTIVA...',
-    java:       'MODALITÀ JAVA ATTIVA...',
-    cpp:        'MODALITÀ C++ ATTIVA...',
-    c:          'MODALITÀ C ATTIVA...',
-    csharp:     'MODALITÀ C# ATTIVA...',
-    go:         'MODALITÀ GO ATTIVA...',
-    rust:       'MODALITÀ RUST ATTIVA...',
-    php:        'MODALITÀ PHP ATTIVA...',
-    ruby:       'MODALITÀ RUBY ATTIVA...',
-    swift:      'MODALITÀ SWIFT ATTIVA...',
-    kotlin:     'MODALITÀ KOTLIN ATTIVA...',
-    html:       'MODALITÀ HTML/CSS ATTIVA...',
-    sql:        'MODALITÀ SQL ATTIVA...',
-    bash:       'MODALITÀ BASH/SHELL ATTIVA...',
-    dart:       'MODALITÀ DART/FLUTTER ATTIVA...',
-    scala:      'MODALITÀ SCALA ATTIVA...',
-    haskell:    'MODALITÀ HASKELL ATTIVA...',
-    r:          'MODALITÀ R ATTIVA...',
-    matlab:     'MODALITÀ MATLAB ATTIVA...',
-    julia:      'MODALITÀ JULIA ATTIVA...',
-    lua:        'MODALITÀ LUA ATTIVA...',
-    elixir:     'MODALITÀ ELIXIR ATTIVA...',
-    erlang:     'MODALITÀ ERLANG ATTIVA...',
-    clojure:    'MODALITÀ CLOJURE ATTIVA...',
-    fsharp:     'MODALITÀ F# ATTIVA...',
-    ocaml:      'MODALITÀ OCAML ATTIVA...',
-    assembly:   'MODALITÀ ASSEMBLY ATTIVA...',
-    zig:        'MODALITÀ ZIG ATTIVA...',
-    nim:        'MODALITÀ NIM ATTIVA...',
-    wasm:       'MODALITÀ WEBASSEMBLY ATTIVA...',
-    glsl:       'MODALITÀ GLSL/HLSL ATTIVA...',
+    java: 'MODALITÀ JAVA ATTIVA...',
+    cpp: 'MODALITÀ C++ ATTIVA...',
+    c: 'MODALITÀ C ATTIVA...',
+    csharp: 'MODALITÀ C# ATTIVA...',
+    go: 'MODALITÀ GO ATTIVA...',
+    rust: 'MODALITÀ RUST ATTIVA...',
+    php: 'MODALITÀ PHP ATTIVA...',
+    ruby: 'MODALITÀ RUBY ATTIVA...',
+    swift: 'MODALITÀ SWIFT ATTIVA...',
+    kotlin: 'MODALITÀ KOTLIN ATTIVA...',
+    html: 'MODALITÀ HTML/CSS ATTIVA...',
+    sql: 'MODALITÀ SQL ATTIVA...',
+    bash: 'MODALITÀ BASH/SHELL ATTIVA...',
+    dart: 'MODALITÀ DART/FLUTTER ATTIVA...',
+    scala: 'MODALITÀ SCALA ATTIVA...',
+    haskell: 'MODALITÀ HASKELL ATTIVA...',
+    r: 'MODALITÀ R ATTIVA...',
+    matlab: 'MODALITÀ MATLAB ATTIVA...',
+    julia: 'MODALITÀ JULIA ATTIVA...',
+    lua: 'MODALITÀ LUA ATTIVA...',
+    elixir: 'MODALITÀ ELIXIR ATTIVA...',
+    erlang: 'MODALITÀ ERLANG ATTIVA...',
+    clojure: 'MODALITÀ CLOJURE ATTIVA...',
+    fsharp: 'MODALITÀ F# ATTIVA...',
+    ocaml: 'MODALITÀ OCAML ATTIVA...',
+    assembly: 'MODALITÀ ASSEMBLY ATTIVA...',
+    zig: 'MODALITÀ ZIG ATTIVA...',
+    nim: 'MODALITÀ NIM ATTIVA...',
+    wasm: 'MODALITÀ WEBASSEMBLY ATTIVA...',
+    glsl: 'MODALITÀ GLSL/HLSL ATTIVA...',
     powershell: 'MODALITÀ POWERSHELL ATTIVA...',
-    cobol:      'MODALITÀ COBOL ATTIVA...',
-    translate:  'MODALITÀ TRADUZIONE ATTIVA...',
-    summarize:  'MODALITÀ RIASSUNTO ATTIVA...',
-    debug:      'MODALITÀ DEBUG ATTIVA...',
-    explain:    'MODALITÀ SPIEGAZIONE ATTIVA...',
-    math:       'MODALITÀ MATEMATICA ATTIVA...',
-    creative:   'MODALITÀ CREATIVA ATTIVA...',
-    security:   'MODALITÀ CYBERSECURITY ATTIVA...',
-    devops:     'MODALITÀ DEVOPS ATTIVA...',
-    ml:         'MODALITÀ MACHINE LEARNING/AI ATTIVA...',
+    cobol: 'MODALITÀ COBOL ATTIVA...',
+    translate: 'MODALITÀ TRADUZIONE ATTIVA...',
+    summarize: 'MODALITÀ RIASSUNTO ATTIVA...',
+    debug: 'MODALITÀ DEBUG ATTIVA...',
+    explain: 'MODALITÀ SPIEGAZIONE ATTIVA...',
+    math: 'MODALITÀ MATEMATICA ATTIVA...',
+    creative: 'MODALITÀ CREATIVA ATTIVA...',
+    security: 'MODALITÀ CYBERSECURITY ATTIVA...',
+    devops: 'MODALITÀ DEVOPS ATTIVA...',
+    ml: 'MODALITÀ MACHINE LEARNING/AI ATTIVA...',
 };
 
 /* ══════════════════════════════════════════════════════════
-   GENERA IMPRONTA DIGITALE (FINGERPRINT)
+   GENERA IMPRONTA DIGITALE (FINGERPRINT) - FUNZIONANTE
 ══════════════════════════════════════════════════════════ */
-function generateFingerprint() {
+async function generateFingerprint() {
     const components = [
         navigator.userAgent,
         navigator.language,
@@ -79,16 +67,55 @@ function generateFingerprint() {
         !!navigator.plugins.length,
         !!window.chrome,
         !!navigator.webdriver,
-        Intl.DateTimeFormat().resolvedOptions().timeZone
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+        await getCanvasFingerprint(),
+        await getWebGLFingerprint()
     ];
-    return btoa(components.join('|')).substring(0, 64);
+    const fingerprint = components.join('|');
+    return await sha256(fingerprint);
+}
+
+async function getCanvasFingerprint() {
+    try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 50;
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(0, 0, 100, 40);
+        ctx.fillStyle = '#069';
+        ctx.fillText('JARVIS', 2, 15);
+        return canvas.toDataURL();
+    } catch(e) { return 'canvas_error'; }
+}
+
+async function getWebGLFingerprint() {
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return 'webgl_not_supported';
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+            return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        }
+        return 'webgl_no_info';
+    } catch(e) { return 'webgl_error'; }
+}
+
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 64);
 }
 
 /* ══════════════════════════════════════════════════════════
-   HOLOGRAM — Avengers: Age of Ultron style (NESSUN VOLTO)
+   HOLOGRAM — Avengers: Age of Ultron style (CON VOICE)
 ══════════════════════════════════════════════════════════ */
 class JarvisHologram {
-    constructor(canvasId, size = 300) {
+    constructor(canvasId, size = 380) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) return;
         this.canvas.width  = size;
@@ -97,11 +124,11 @@ class JarvisHologram {
         this.t       = 0;
         this.active  = false;
         this.speaking = false;
-        this.particles = Array.from({ length: 70 }, () => ({
+        this.particles = Array.from({ length: 90 }, () => ({
             angle:  Math.random() * Math.PI * 2,
-            radius: (size * 0.27) + Math.random() * (size * 0.18),
-            speed:  0.005 + Math.random() * 0.02,
-            size:   1 + Math.random() * 2.5,
+            radius: (size * 0.25) + Math.random() * (size * 0.2),
+            speed:  0.003 + Math.random() * 0.015,
+            size:   1 + Math.random() * 3,
             alpha:  Math.random(),
         }));
     }
@@ -115,118 +142,160 @@ class JarvisHologram {
         const { canvas, ctx } = this;
         const cx = canvas.width  / 2;
         const cy = canvas.height / 2;
-        const R  = canvas.width  * 0.38;
+        const R  = canvas.width  * 0.4;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        this.t += 0.018;
+        this.t += 0.012;
 
-        // Outer glow
-        for (let r = 3; r >= 1; r--) {
+        for (let r = 4; r >= 1; r--) {
             ctx.beginPath();
-            ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(0,243,255,${0.03 * r})`;
-            ctx.lineWidth   = r * 9;
+            ctx.arc(cx, cy, R + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0,243,255,${0.04 * r})`;
+            ctx.lineWidth   = r * 8;
             ctx.stroke();
         }
 
-        // Rotating arcs
         const arcCfg = [
-            { r: R * 0.94, speed: 0.28, color: 'rgba(0,200,255,0.72)' },
-            { r: R * 1.08, speed: -0.20, color: 'rgba(0,150,255,0.55)' },
-            { r: R * 1.22, speed: 0.14, color: 'rgba(0,100,255,0.38)' },
+            { r: R * 0.92, speed: 0.32, color: 'rgba(0,220,255,0.85)' },
+            { r: R * 1.06, speed: -0.24, color: 'rgba(0,180,255,0.65)' },
+            { r: R * 1.2, speed: 0.18, color: 'rgba(0,120,255,0.45)' },
+            { r: R * 1.34, speed: -0.12, color: 'rgba(0,80,200,0.3)' },
         ];
         arcCfg.forEach(({ r, speed, color }, i) => {
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(this.t * speed);
             ctx.beginPath();
-            ctx.arc(0, 0, r, 0, Math.PI * (1.4 + 0.2 * Math.sin(this.t + i)));
+            ctx.arc(0, 0, r, 0, Math.PI * (1.3 + 0.25 * Math.sin(this.t * 1.5 + i)));
             ctx.strokeStyle = color;
-            ctx.lineWidth   = 1.8;
+            ctx.lineWidth   = 2.2;
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(r, 0, 3.5, 0, Math.PI * 2);
+            ctx.arc(r, 0, 4.5, 0, Math.PI * 2);
             ctx.fillStyle = '#00f3ff';
             ctx.fill();
             ctx.restore();
         });
 
-        // Core sphere
-        const grad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
-        grad.addColorStop(0,   'rgba(180,240,255,0.9)');
-        grad.addColorStop(0.35,'rgba(0,180,255,0.75)');
-        grad.addColorStop(1,   'rgba(0,50,150,0.18)');
+        const grad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R * 1.2);
+        grad.addColorStop(0,   'rgba(200,240,255,0.95)');
+        grad.addColorStop(0.3, 'rgba(0,200,255,0.8)');
+        grad.addColorStop(0.6, 'rgba(0,100,200,0.5)');
+        grad.addColorStop(1,   'rgba(0,30,100,0.2)');
         ctx.beginPath();
         ctx.arc(cx, cy, R, 0, Math.PI * 2);
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Arc reactor (NO FACCIA)
-        const ar = R * 0.38;
+        const coreR = R * 0.42;
         ctx.beginPath();
-        ctx.arc(cx, cy, ar, 0, Math.PI * 2);
-        ctx.fillStyle   = 'rgba(200,242,255,0.95)';
+        ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+        ctx.fillStyle   = 'rgba(180,235,255,0.95)';
         ctx.shadowColor = '#00f3ff';
-        ctx.shadowBlur  = this.speaking ? 30 : 18;
+        ctx.shadowBlur  = this.speaking ? 35 : 22;
         ctx.fill();
         ctx.shadowBlur  = 0;
 
-        // Hexagonal reactor lines
-        for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2 + this.t * 1.2;
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 + this.t * 0.8;
             ctx.beginPath();
-            ctx.moveTo(cx + Math.cos(a) * ar * 0.45, cy + Math.sin(a) * ar * 0.45);
-            ctx.lineTo(cx + Math.cos(a) * ar,        cy + Math.sin(a) * ar);
-            ctx.strokeStyle = 'rgba(0,60,160,0.8)';
-            ctx.lineWidth   = 2;
-            ctx.stroke();
-        }
-
-        // Inner HUD rings
-        ctx.save();
-        ctx.translate(cx, cy);
-        for (let i = 0; i < 3; i++) {
-            const rr = R * (0.52 - i * 0.14);
-            ctx.beginPath();
-            ctx.arc(0, 0, rr, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(0,220,255,${0.18 + i * 0.08})`;
-            ctx.lineWidth   = 1;
-            ctx.stroke();
-        }
-        if (this.speaking) {
-            const wave = R * 0.22 + R * 0.08 * Math.abs(Math.sin(this.t * 9));
-            ctx.beginPath();
-            ctx.arc(0, 0, wave, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(0,255,200,0.55)';
+            ctx.moveTo(cx + Math.cos(a) * coreR * 0.5, cy + Math.sin(a) * coreR * 0.5);
+            ctx.lineTo(cx + Math.cos(a) * coreR * 1.1, cy + Math.sin(a) * coreR * 1.1);
+            ctx.strokeStyle = 'rgba(0,100,200,0.9)';
             ctx.lineWidth   = 2.5;
             ctx.stroke();
         }
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        for (let i = 0; i < 4; i++) {
+            const rr = R * (0.55 - i * 0.12);
+            ctx.beginPath();
+            ctx.arc(0, 0, rr, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0,220,255,${0.22 + i * 0.08})`;
+            ctx.lineWidth   = 1.2;
+            ctx.stroke();
+        }
+        
+        if (this.speaking) {
+            const wave = coreR * 1.2 + coreR * 0.25 * Math.abs(Math.sin(this.t * 12));
+            ctx.beginPath();
+            ctx.arc(0, 0, wave, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0,255,200,0.7)';
+            ctx.lineWidth   = 3;
+            ctx.stroke();
+            
+            for (let i = 1; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, wave + i * 6, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0,200,255,${0.3 - i * 0.08})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
         ctx.restore();
 
-        // Orbiting particles
         this.particles.forEach(p => {
             p.angle += p.speed;
-            p.alpha  = 0.38 + 0.62 * Math.abs(Math.sin(p.angle * 2));
+            p.alpha  = 0.4 + 0.6 * Math.abs(Math.sin(p.angle * 2.5));
             const x  = cx + Math.cos(p.angle) * p.radius;
-            const y  = cy + Math.sin(p.angle) * p.radius * 0.34;
+            const y  = cy + Math.sin(p.angle) * p.radius * 0.4;
             ctx.beginPath();
             ctx.arc(x, y, p.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(0,243,255,${p.alpha * 0.68})`;
+            ctx.fillStyle = `rgba(0,243,255,${p.alpha * 0.7})`;
             ctx.fill();
         });
 
-        // CRT scan lines
-        for (let y = 0; y < canvas.height; y += 4) {
-            ctx.fillStyle = 'rgba(0,0,20,0.055)';
+        for (let y = 0; y < canvas.height; y += 3) {
+            ctx.fillStyle = 'rgba(0,0,20,0.04)';
             ctx.fillRect(0, y, canvas.width, 1);
         }
 
-        // Data readout
-        ctx.font      = `${Math.max(7, canvas.width * 0.027)}px Share Tech Mono, monospace`;
-        ctx.fillStyle = 'rgba(0,243,255,0.45)';
-        const readout = ['SYS:ONLINE', `T:${(this.t % 100).toFixed(1)}`, 'SEC:AES256', 'NET:ACTIVE'];
-        readout.forEach((l, i) => ctx.fillText(l, 5, 14 + i * (canvas.width * 0.038)));
+        ctx.font      = `${Math.max(8, canvas.width * 0.03)}px Share Tech Mono, monospace`;
+        ctx.fillStyle = 'rgba(0,243,255,0.55)';
+        const readout = ['SYS:ONLINE', `T:${(this.t % 100).toFixed(1)}`, 'SEC:AES-256', 'NET:ACTIVE', '2FA:ENABLED'];
+        readout.forEach((l, i) => ctx.fillText(l, 6, 18 + i * (canvas.width * 0.045)));
 
         requestAnimationFrame(() => this._frame());
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   FILE MEMORY MANAGER
+══════════════════════════════════════════════════════════ */
+class FileMemoryManager {
+    constructor() {
+        this.files = new Map();
+        this.maxFileSize = 50000;
+    }
+
+    addFile(name, content, type) {
+        const key = Date.now() + '_' + name;
+        let truncatedContent = content;
+        if (content.length > this.maxFileSize) {
+            truncatedContent = content.substring(0, this.maxFileSize) + 
+                `\n\n[FILE TROPPO LUNGO: ${content.length} caratteri, mostrati i primi ${this.maxFileSize}]`;
+        }
+        this.files.set(key, {
+            name, content: truncatedContent, type, timestamp: Date.now()
+        });
+        return key;
+    }
+
+    getFileContent(key) {
+        return this.files.get(key)?.content || null;
+    }
+
+    getAllFilesContext() {
+        if (this.files.size === 0) return '';
+        let context = '\n\n📁 **FILE MEMORIZZATI:**\n';
+        for (const [key, file] of this.files) {
+            context += `\n--- FILE: ${file.name} ---\n${file.content.substring(0, 3000)}...\n`;
+        }
+        return context;
+    }
+
+    clear() {
+        this.files.clear();
     }
 }
 
@@ -248,6 +317,8 @@ class JarvisInterface {
         this.hologram           = null;
         this.hologramVisible    = false;
         this.authHologram       = null;
+        this.fileMemory         = new FileMemoryManager();
+        this.holoRecognition    = null;
 
         if (this.token) {
             this.verifyAuth();
@@ -306,13 +377,34 @@ class JarvisInterface {
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
 
-        document.querySelectorAll('.capability').forEach(el => {
-            el.addEventListener('click', () => this.setMode(el.dataset.mode, el.dataset.label));
-        });
-
+        this.initCapabilitiesDropdown();
         this.initSpeechRecognition();
         this.loadConversations();
         this.createNewChat();
+    }
+
+    initCapabilitiesDropdown() {
+        const dropdown = document.getElementById('capabilitiesDropdown');
+        if (!dropdown) return;
+        
+        dropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+        
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+        });
+        
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const mode = item.dataset.mode;
+                const label = item.dataset.label;
+                this.setMode(mode, label);
+                dropdown.classList.remove('open');
+            });
+        });
     }
 
     initSidebar() {
@@ -324,6 +416,7 @@ class JarvisInterface {
             if (window.innerWidth >= 992) this.openSidebar(); else this.closeSidebar();
         });
     }
+    
     toggleSidebar() { this.sidebar?.classList.contains('open') ? this.closeSidebar() : this.openSidebar(); }
     openSidebar()   {
         this.sidebar?.classList.add('open');
@@ -347,31 +440,19 @@ class JarvisInterface {
             bar.style.display = 'flex';
         }
 
-        document.querySelectorAll('.capability').forEach(el => {
-            el.classList.toggle('active', el.dataset.mode === mode);
-        });
+        const dropdownBtn = document.querySelector('.dropdown-btn');
+        if (dropdownBtn) {
+            dropdownBtn.innerHTML = `<span class="dropdown-icon">⚡</span> ${modeLabel} <span class="dropdown-arrow">▼</span>`;
+        }
 
         const placeholders = {
             python: 'Cosa vuoi fare in Python, Signore?',
             javascript: 'Dimmi cosa costruire in JavaScript...',
-            typescript: 'Progetto TypeScript — descrivi la struttura...',
-            java: 'Quale classe o algoritmo Java, Sir?',
-            cpp: 'Codice C++ — performante e preciso...',
-            c: 'Codice C a basso livello, Signore...',
-            rust: 'Codice Rust — sicuro e veloce...',
-            go: 'Goroutine o microservizio Go?',
-            sql: 'Quale query o schema SQL, Sir?',
-            bash: 'Quale script shell o comando?',
-            assembly: 'Istruzioni Assembly — architettura target?',
             translate: 'Incolla il testo da tradurre...',
             summarize: 'Incolla il testo da riassumere...',
             debug: 'Incolla il codice da analizzare...',
             explain: 'Cosa devo spiegarle, Signore?',
             math: 'Inserisci il problema matematico...',
-            creative: 'Cosa vuole creare oggi?',
-            security: 'Obiettivo di sicurezza — descrivi il sistema...',
-            devops: 'Infrastruttura o pipeline CI/CD?',
-            ml: 'Quale modello o dataset ML, Sir?',
         };
         if (this.userInput) {
             this.userInput.placeholder = placeholders[mode] || `Richiesta in modalità ${modeLabel}...`;
@@ -382,11 +463,8 @@ class JarvisInterface {
             python: `Modalità **${modeLabel}** inizializzata, Signore. Sono pronto a scrivere codice Python di alto livello...`,
             javascript: `Eccellente scelta, Sir. **Modalità JavaScript** online...`,
             debug: `**Modalità Debug** attivata, Signore...`,
-            security: `**Modalità Cybersecurity** online, Sir...`,
             translate: `**Modalità Traduzione** attivata...`,
-            ml: `**Modalità Machine Learning** inizializzata, Sir...`,
             creative: `**Modalità Creativa** attivata, Signore...`,
-            math: `**Modalità Matematica** online, Sir...`,
         };
         const greeting = greetings[mode] || `Modalità **${modeLabel}** attivata, Signore. Come posso assisterla?`;
         this.addMessage('JARVIS', greeting, 'assistant', [], true);
@@ -396,7 +474,12 @@ class JarvisInterface {
         this.activeMode = null;
         const bar = document.getElementById('activeModeBar');
         if (bar) bar.style.display = 'none';
-        document.querySelectorAll('.capability').forEach(el => el.classList.remove('active'));
+        
+        const dropdownBtn = document.querySelector('.dropdown-btn');
+        if (dropdownBtn) {
+            dropdownBtn.innerHTML = `<span class="dropdown-icon">⚡</span> Seleziona Modalità <span class="dropdown-arrow">▼</span>`;
+        }
+        
         if (this.userInput) {
             this.userInput.placeholder = 'Scrivi o parla con JARVIS...';
         }
@@ -417,12 +500,57 @@ class JarvisInterface {
             if (hamburger)   hamburger.style.visibility   = 'hidden';
             if (!this.hologram) this.hologram = new JarvisHologram('holoCanvas', 380);
             this.hologram.start();
+            this.initHoloSpeechRecognition();
         } else {
             el.style.display = 'none';
             if (mainContent) mainContent.style.visibility = 'visible';
             if (sidebar)     sidebar.style.visibility     = 'visible';
             if (hamburger)   hamburger.style.visibility   = 'visible';
             this.hologram?.stop();
+            if (this.holoRecognition) {
+                this.holoRecognition.stop();
+            }
+        }
+    }
+
+    initHoloSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.holoRecognition = new SR();
+            this.holoRecognition.lang = 'it-IT';
+            this.holoRecognition.continuous = false;
+            this.holoRecognition.interimResults = true;
+            
+            this.holoRecognition.onresult = (e) => {
+                let transcript = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    transcript += e.results[i][0].transcript;
+                }
+                const holoInput = document.getElementById('holoInput');
+                if (holoInput) {
+                    holoInput.value = transcript;
+                    if (e.results[0].isFinal) {
+                        setTimeout(() => this.sendHologramMessage(), 100);
+                    }
+                }
+            };
+            
+            this.holoRecognition.onerror = () => {
+                console.log('Errore riconoscimento vocale ologramma');
+            };
+        }
+    }
+
+    startHoloListening() {
+        if (this.holoRecognition) {
+            try {
+                this.holoRecognition.start();
+                const micBtn = document.getElementById('holoMicBtn');
+                if (micBtn) micBtn.classList.add('listening');
+                setTimeout(() => {
+                    if (micBtn) micBtn.classList.remove('listening');
+                }, 5000);
+            } catch(e) {}
         }
     }
 
@@ -442,32 +570,40 @@ class JarvisInterface {
 
         const loadDiv = document.createElement('div');
         loadDiv.className   = 'holo-msg holo-msg-jarvis';
-        loadDiv.textContent = '...';
+        loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
         msgs.appendChild(loadDiv);
         msgs.scrollTop = msgs.scrollHeight;
 
         try {
             if (!this.holoHistory) this.holoHistory = [];
             this.holoHistory.push({ role: 'user', content: text });
+            
+            let finalMessage = text;
+            const fileContext = this.fileMemory.getAllFilesContext();
+            if (fileContext) {
+                finalMessage = `[CONTESTO FILE]\n${fileContext}\n\n[DOMANDA]\n${text}`;
+            }
+            
             const res  = await fetch('/api/chat', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-                body:    JSON.stringify({ messages: this.holoHistory })
+                body:    JSON.stringify({ messages: [...this.holoHistory.slice(0, -1), { role: 'user', content: finalMessage }] })
             });
             const data  = await res.json();
             const reply = data.success ? data.response : 'Errore di sistema, Signore.';
             this.holoHistory.push({ role: 'assistant', content: reply });
-            loadDiv.textContent = reply;
+            loadDiv.innerHTML = this.formatMessage(reply);
+            loadDiv.classList.remove('holo-typing');
 
             if (this.synthesis && this.hologram) {
                 this.hologram.setSpeaking(true);
-                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 300));
+                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 400));
                 utt.lang  = 'it-IT';
                 utt.onend = () => this.hologram?.setSpeaking(false);
                 this.synthesis.speak(utt);
             }
         } catch {
-            loadDiv.textContent = 'Errore di connessione, Signore.';
+            loadDiv.innerHTML = 'Errore di connessione, Signore.';
         }
         msgs.scrollTop = msgs.scrollHeight;
     }
@@ -508,7 +644,7 @@ class JarvisInterface {
         if (!container) return;
 
         if (!this.conversations.length) {
-            container.innerHTML = '';
+            container.innerHTML = '<div class="sidebar-empty-msg">Nessuna conversazione</div>';
             return;
         }
 
@@ -518,13 +654,14 @@ class JarvisInterface {
             if (!convs.length) return;
             html += `<div class="sidebar-section-label">${label}</div>`;
             convs.forEach(conv => {
-                const title    = this.escapeHtml((conv.title || 'Chat').substring(0, 42));
+                const title    = this.escapeHtml((conv.title || 'Nuova Chat').substring(0, 45));
                 const isActive = this.currentConversationId === conv.id ? 'active' : '';
                 html += `
                     <div class="conv-item ${isActive}" onclick="window.jarvis.loadConversation(${conv.id})">
                         <div class="conv-item-icon">💬</div>
                         <div class="conv-item-text">
                             <div class="conv-item-title">${title}</div>
+                            <div class="conv-item-date">${new Date(conv.updated_at).toLocaleDateString('it-IT')}</div>
                         </div>
                         <button class="conv-item-delete" onclick="event.stopPropagation();window.jarvis.deleteConversation(${conv.id})" title="Elimina">🗑</button>
                     </div>`;
@@ -575,12 +712,14 @@ class JarvisInterface {
                 this.currentConversationId = data.conversationId;
                 this.clearMessages();
                 this.clearMode();
+                this.fileMemory.clear();
+                
                 const name = this.currentUser?.name || 'Signore';
-                this.addMessage('JARVIS',
-                    `Buongiorno, ${name}! Sono J.A.R.V.I.S., il suo assistente personale. ` +
-                    `Posso aiutarla con qualsiasi linguaggio di programmazione, analisi, traduzioni, matematica e molto altro. ` +
-                    `Come posso assisterla oggi?`,
-                    'assistant', [], true);
+                const creatorMessage = this.currentUser?.email === 'antonio.pepice08@gmail.com' 
+                    ? `Buongiorno, ${name}! Sono J.A.R.V.I.S., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`
+                    : `Buongiorno, ${name}! Sono J.A.R.V.I.S. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                
+                this.addMessage('JARVIS', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
                 this.userInput?.focus();
                 if (window.innerWidth < 992) this.closeSidebar();
@@ -597,8 +736,14 @@ class JarvisInterface {
         this.userInput.style.height = 'auto';
 
         let finalMessage = content;
+        
+        const fileContext = this.fileMemory.getAllFilesContext();
+        if (fileContext) {
+            finalMessage = `[CONTESTO FILE]\n${fileContext}\n\n[DOMANDA]\n${content}`;
+        }
+        
         if (this.activeMode && MODE_PROMPTS[this.activeMode]) {
-            finalMessage = `[SYSTEM CONTEXT: ${MODE_PROMPTS[this.activeMode]}]\n\n${content}`;
+            finalMessage = `[SYSTEM CONTEXT: ${MODE_PROMPTS[this.activeMode]}]\n\n${finalMessage}`;
         }
 
         this.showTypingIndicator();
@@ -627,10 +772,19 @@ class JarvisInterface {
 
     async uploadFile(file) {
         if (!file) return;
+        
         this.addMessage('Sistema', `📎 Analisi: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'system', []);
+        
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const prompt = `Analizza questo file "${file.name}":\n\n${e.target.result}`;
+            let fileContent = e.target.result;
+            
+            this.fileMemory.addFile(file.name, fileContent, file.type);
+            
+            const truncatedContent = fileContent.length > 8000 ? fileContent.substring(0, 8000) + '...[FILE TROPPO LUNGO, TRONCATO]' : fileContent;
+            
+            const prompt = `Ho caricato il file "${file.name}". Ecco il suo contenuto:\n\n${truncatedContent}\n\nAnalizza questo file e dimmi di cosa si tratta. Se è codice, spiegamelo. Se è testo, riassumimelo. Se è un'immagine (nome file), dimmi cosa potrebbe contenere in base al nome.`;
+            
             this.showTypingIndicator();
             try {
                 const res  = await fetch('/api/chat/history', {
@@ -642,7 +796,7 @@ class JarvisInterface {
                 this.hideTypingIndicator();
                 if (data.success) {
                     this.currentConversationId = data.conversationId;
-                    await this.typeMessage(`📄 **Analisi: ${file.name}**\n\n${data.response}`, []);
+                    await this.typeMessage(`📄 **Analisi: ${file.name}**\n\n${data.response}\n\n💡 *Ora puoi farmi domande specifiche su questo file!*`, []);
                     await this.loadConversations();
                 } else {
                     this.addMessage('JARVIS', `Errore: ${data.error}`, 'system', []);
@@ -652,7 +806,16 @@ class JarvisInterface {
                 this.addMessage('JARVIS', `Errore: ${err.message}`, 'system', []);
             }
         };
-        reader.readAsText(file, 'UTF-8');
+        
+        if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.js') || 
+            file.name.endsWith('.py') || file.name.endsWith('.html') || file.name.endsWith('.css') ||
+            file.name.endsWith('.json') || file.name.endsWith('.md') || file.name.endsWith('.csv')) {
+            reader.readAsText(file, 'UTF-8');
+        } else {
+            this.fileMemory.addFile(file.name, `[File: ${file.name} - Tipo: ${file.type || 'sconosciuto'} - Dimensione: ${(file.size / 1024).toFixed(1)} KB]`, file.type);
+            this.addMessage('JARVIS', `📁 Ho memorizzato il file **${file.name}**. Puoi farmi domande su di esso.`, 'assistant', [], true);
+            this.hideTypingIndicator();
+        }
     }
 
     initSpeechRecognition() {
@@ -688,7 +851,7 @@ class JarvisInterface {
     speak(text) {
         if (!text) return;
         if (this.synthesis.speaking) this.synthesis.cancel();
-        const clean = text.replace(/```[\s\S]*?```/g, '').replace(/[#*_`]/g, '').substring(0, 500);
+        const clean = text.replace(/```[\s\S]*?```/g, '').replace(/[#*_`]/g, '').substring(0, 600);
         const utt   = new SpeechSynthesisUtterance(clean);
         utt.lang  = 'it-IT'; utt.rate = 0.9; utt.pitch = 0.9;
         utt.onstart = () => {
@@ -717,6 +880,7 @@ class JarvisInterface {
         this.chatMessages.appendChild(d);
         this.scrollToBottom();
     }
+    
     hideTypingIndicator() { document.getElementById('typingIndicator')?.remove(); }
     clearMessages()       { this.chatMessages.innerHTML = ''; }
     scrollToBottom()      { this.chatMessages.scrollTop = this.chatMessages.scrollHeight; }
@@ -747,7 +911,7 @@ class JarvisInterface {
             const el    = document.getElementById(msgId);
             let i       = 0;
             el.classList.add('typing');
-            const speed = content.length > 600 ? 4 : 16;
+            const speed = content.length > 800 ? 4 : 12;
             const tick  = setInterval(() => {
                 if (i < content.length) {
                     el.innerHTML = this.formatMessage(content.substring(0, ++i));
@@ -930,7 +1094,6 @@ function getTfaCode(containerId) {
     return Array.from(container.querySelectorAll('.tfa-digit')).map(d => d.value).join('');
 }
 
-// LOGIN con fingerprint + parola segreta + 2FA
 document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email    = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -938,7 +1101,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const secretWord = document.getElementById('loginSecretWord').value;
     const section2fa = document.getElementById('login2FASection');
     const code2fa  = section2fa?.style.display !== 'none' ? getTfaCode('tfaInputs') : '';
-    const fingerprint = generateFingerprint();
+    const fingerprint = await generateFingerprint();
 
     if (email !== 'antonio.pepice08@gmail.com') {
         showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
@@ -977,66 +1140,55 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-// REGISTER con fingerprint + parola segreta
 document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name     = document.getElementById('regName').value.trim();
-    const surname  = document.getElementById('regSurname').value.trim();
-    const email    = document.getElementById('regEmail').value.trim().toLowerCase();
+    
+    const name = document.getElementById('regName').value.trim();
+    const surname = document.getElementById('regSurname').value.trim();
+    const email = document.getElementById('regEmail').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
-    const confirm  = document.getElementById('regConfirmPassword').value;
+    const confirm = document.getElementById('regConfirmPassword').value;
     const secretWord = document.getElementById('regSecretWord').value;
-    const fingerprint = generateFingerprint();
+    const fingerprint = await generateFingerprint();
 
     if (email !== 'antonio.pepice08@gmail.com') {
         showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
         return;
     }
 
-    if (password !== confirm) { showAuthMessage('❌ Le password non coincidono'); return; }
-    if (password.length < 8)  { showAuthMessage('❌ Password troppo corta (min 8 caratteri)'); return; }
-    if (secretWord.length < 4) { showAuthMessage('❌ Parola segreta troppo corta (min 4 caratteri)'); return; }
-
-    const step = document.getElementById('regStep')?.value || '1';
-    if (step === '1') {
-        try {
-            const res  = await fetch('/api/auth/register-send-code', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ email })
-            });
-            const data = await res.json();
-            if (data.success) {
-                const sec = document.getElementById('regVerifySection');
-                if (sec) { sec.style.display = 'flex'; }
-                const stepInp = document.getElementById('regStep');
-                if (stepInp) stepInp.value = '2';
-                showAuthMessage('📧 Codice di verifica inviato! Controlla la tua email.', true);
-            } else {
-                showAuthMessage(`❌ ${data.error}`);
-            }
-        } catch { showAuthMessage('❌ Errore di connessione'); }
+    if (password !== confirm) {
+        showAuthMessage('❌ Le password non coincidono');
+        return;
+    }
+    if (password.length < 8) {
+        showAuthMessage('❌ Password troppo corta (min 8 caratteri)');
+        return;
+    }
+    if (secretWord.length < 4) {
+        showAuthMessage('❌ Parola segreta troppo corta (min 4 caratteri)');
         return;
     }
 
-    const emailCode = getTfaCode('regVerifyInputs');
-    if (emailCode.length < 6) { showAuthMessage('❌ Inserisci il codice a 6 cifre ricevuto via email'); return; }
-
     try {
-        const res  = await fetch('/api/auth/register', {
-            method:  'POST',
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ name, surname, email, password, secretWord, fingerprint, emailCode })
+            body: JSON.stringify({ name, surname, email, password, secretWord, fingerprint })
         });
         const data = await res.json();
+        
         if (data.success && data.requiresGoogleAuth) {
             const qrSec = document.getElementById('regGoogleAuthSection');
             const qrImg = document.getElementById('regQrCode');
+            const submitBtn = document.querySelector('#registerForm .send-button');
+            
             if (qrSec) qrSec.style.display = 'flex';
             if (qrImg && data.qrCode) qrImg.src = data.qrCode;
-            const stepInp = document.getElementById('regStep');
-            if (stepInp) stepInp.value = '3';
-            showAuthMessage('📱 Scansiona il QR con Google Authenticator, poi inserisci il codice.', true);
+            if (submitBtn) submitBtn.style.display = 'none';
+            
+            window._pendingGaEmail = email;
+            
+            showAuthMessage('📱 Scansiona il QR con Google Authenticator, poi inserisci il codice a 6 cifre.', true);
         } else if (data.success) {
             localStorage.setItem('jarvis_token', data.token);
             window.jarvis = new JarvisInterface();
@@ -1044,8 +1196,39 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
-    } catch { showAuthMessage('❌ Errore di connessione'); }
+    } catch (err) {
+        showAuthMessage(`❌ Errore: ${err.message}`);
+    }
 });
+
+async function confirmGoogleAuth() {
+    const email = window._pendingGaEmail || document.getElementById('regEmail')?.value.trim().toLowerCase();
+    const gaCode = getTfaCode('regGaInputs');
+    
+    if (gaCode.length < 6) {
+        showAuthMessage('❌ Inserisci il codice a 6 cifre da Google Authenticator');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/auth/verify-google-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, gaCode })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            localStorage.setItem('jarvis_token', data.token);
+            window.jarvis = new JarvisInterface();
+            showAuthMessage('✅ Registrazione completata! Google Auth attivo.', true);
+        } else {
+            showAuthMessage(`❌ ${data.error}`);
+        }
+    } catch (err) {
+        showAuthMessage(`❌ Errore: ${err.message}`);
+    }
+}
 
 async function sendRecoverCode() {
     const email = document.getElementById('recoverEmail')?.value;
@@ -1060,7 +1243,7 @@ async function sendRecoverCode() {
         if (data.success) {
             const sec = document.getElementById('recoverCodeSection');
             if (sec) { sec.style.display = 'flex'; initTfaInputs('recoverTfaInputs'); }
-            showAuthMessage('📧 Codice inviato! Controlla email o log del server.', true);
+            showAuthMessage('✅ Contatta l\'amministratore per il reset della password.', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
@@ -1072,19 +1255,23 @@ async function sendRecoverCode() {
 document.getElementById('recoverForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email       = document.getElementById('recoverEmail').value;
-    const code        = getTfaCode('recoverTfaInputs');
     const newPassword = document.getElementById('recoverNewPassword').value;
     const confirm     = document.getElementById('recoverConfirmPassword').value;
 
-    if (code.length < 6)          { showAuthMessage('❌ Inserisci il codice a 6 cifre'); return; }
-    if (newPassword !== confirm)   { showAuthMessage('❌ Le password non coincidono');    return; }
-    if (newPassword.length < 8)    { showAuthMessage('❌ Password troppo corta (min 8)'); return; }
+    if (newPassword !== confirm) {
+        showAuthMessage('❌ Le password non coincidono');
+        return;
+    }
+    if (newPassword.length < 8) {
+        showAuthMessage('❌ Password troppo corta (min 8)');
+        return;
+    }
 
     try {
         const res  = await fetch('/api/auth/reset-password', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ email, code, newPassword })
+            body:    JSON.stringify({ email, newPassword })
         });
         const data = await res.json();
         if (data.success) {
@@ -1130,27 +1317,6 @@ function loginWithGitHub() {
     showAuthMessage('❌ Accesso GitHub non disponibile.');
 }
 
-async function confirmGoogleAuth() {
-    const email    = document.getElementById('regEmail')?.value.trim().toLowerCase();
-    const gaCode   = getTfaCode('regGaInputs');
-    if (gaCode.length < 6) { showAuthMessage('❌ Inserisci il codice a 6 cifre da Google Authenticator'); return; }
-    try {
-        const res  = await fetch('/api/auth/register-confirm-ga', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ email, gaCode })
-        });
-        const data = await res.json();
-        if (data.success) {
-            localStorage.setItem('jarvis_token', data.token);
-            window.jarvis = new JarvisInterface();
-            showAuthMessage('✅ Registrazione completata! Google Auth attivo.', true);
-        } else {
-            showAuthMessage(`❌ ${data.error}`);
-        }
-    } catch { showAuthMessage('❌ Errore di connessione'); }
-}
-
 function logout() {
     localStorage.removeItem('jarvis_token');
     window.location.reload();
@@ -1160,4 +1326,5 @@ document.addEventListener('DOMContentLoaded', () => {
     window.jarvis = new JarvisInterface();
     initTfaInputs('tfaInputs');
     initTfaInputs('recoverTfaInputs');
+    initTfaInputs('regGaInputs');
 });
