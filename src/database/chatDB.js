@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Chat Database (SQLite) — v2.1 SYNC EDITION
+   J.A.R.V.I.S. — Chat Database (SQLite) — v2.2 SYNC EDITION
    Le conversazioni sono legate all'account (user_id).
    Eliminare una chat la rimuove definitivamente per tutti i dispositivi.
    ═══════════════════════════════════════════════════════════ */
@@ -50,13 +50,15 @@ class ChatDatabase {
         this.db.get("PRAGMA table_info(conversations)", (err, rows) => {
             if (err) {
                 console.error('❌ Errore verifica struttura tabella:', err);
+                this.createRemainingTables();
                 return;
             }
             
             // rows è un array di oggetti, controlla se esiste user_id
             const hasUserId = rows && Array.isArray(rows) && rows.some(col => col.name === 'user_id');
+            const tableExists = rows && rows.length > 0;
             
-            if (!hasUserId && rows && rows.length > 0) {
+            if (!hasUserId && tableExists) {
                 // La tabella esiste ma non ha user_id - migrazione necessaria
                 console.log('🔄 Migrazione database: aggiunta colonna user_id...');
                 
@@ -64,6 +66,7 @@ class ChatDatabase {
                 this.db.run(`ALTER TABLE conversations RENAME TO conversations_old`, (renameErr) => {
                     if (renameErr) {
                         console.error('❌ Errore rename tabella:', renameErr);
+                        this.createRemainingTables();
                         return;
                     }
                     
@@ -79,6 +82,7 @@ class ChatDatabase {
                     `, (createErr) => {
                         if (createErr) {
                             console.error('❌ Errore creazione nuova tabella:', createErr);
+                            this.createRemainingTables();
                             return;
                         }
                         
@@ -89,7 +93,8 @@ class ChatDatabase {
                         `, (migrateErr) => {
                             if (migrateErr) {
                                 console.error('❌ Errore migrazione dati:', migrateErr);
-                                return;
+                            } else {
+                                console.log('✅ Dati migrati con successo');
                             }
                             
                             // Elimina tabella vecchia
@@ -99,15 +104,15 @@ class ChatDatabase {
                                 } else {
                                     console.log('✅ Migrazione database completata (aggiunta user_id)');
                                 }
-                                
                                 // Continua con la creazione degli indici
                                 this.createRemainingTables();
                             });
                         });
                     });
                 });
-            } else if (!rows || rows.length === 0) {
+            } else if (!tableExists) {
                 // Tabella non esiste, creala direttamente
+                console.log('📝 Creazione tabella conversations...');
                 this.db.run(`
                     CREATE TABLE IF NOT EXISTS conversations (
                         id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,12 +150,31 @@ class ChatDatabase {
             if (err) console.error('❌ Errore creazione tabella messages:', err);
         });
 
-        // Crea indice per velocizzare le query per utente
-        this.db.run(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`, (err) => {
-            if (err) console.error('❌ Errore creazione indice:', err);
+        // Verifica se la colonna user_id esiste prima di creare l'indice
+        this.db.get("PRAGMA table_info(conversations)", (err, columns) => {
+            if (err) {
+                console.error('❌ Errore verifica colonne per indice:', err);
+                console.log('✅ Tabelle database pronte (sync per account abilitato)');
+                return;
+            }
+            
+            const hasUserId = columns && Array.isArray(columns) && columns.some(col => col.name === 'user_id');
+            
+            if (hasUserId) {
+                // Crea indice per velocizzare le query per utente
+                this.db.run(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`, (err) => {
+                    if (err) {
+                        console.error('❌ Errore creazione indice:', err.message);
+                    } else {
+                        console.log('✅ Indice idx_conv_user creato');
+                    }
+                    console.log('✅ Tabelle database pronte (sync per account abilitato)');
+                });
+            } else {
+                console.log('⚠️ Indice non creato: colonna user_id non presente');
+                console.log('✅ Tabelle database pronte (sync per account abilitato)');
+            }
         });
-
-        console.log('✅ Tabelle database pronte (sync per account abilitato)');
     }
 
     /* ── CREA CONVERSAZIONE per utente specifico ── */
@@ -232,8 +256,7 @@ class ChatDatabase {
                     const owned = await this.conversationBelongsToUser(conversationId, userId);
                     if (!owned) return reject(new Error('Non autorizzato a eliminare questa conversazione'));
                 }
-                // ON DELETE CASCADE si occupa già dei messaggi,
-                // ma eliminiamo esplicitamente per compatibilità con DB senza FK abilitati
+                // Elimina messaggi e conversazione
                 this.db.run('DELETE FROM messages WHERE conversation_id = ?', [conversationId], (err) => {
                     if (err) return reject(err);
                     this.db.run('DELETE FROM conversations WHERE id = ?', [conversationId], (err2) => {
