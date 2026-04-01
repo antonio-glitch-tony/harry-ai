@@ -501,6 +501,9 @@ class JarvisInterface {
             if (!this.hologram) this.hologram = new JarvisHologram('holoCanvas', 380);
             this.hologram.start();
             this.initHoloSpeechRecognition();
+            // Update status text
+            const statusEl = document.getElementById('holoStatusText');
+            if (statusEl) statusEl.textContent = 'PRONTO — CLICCA IL MICROFONO';
         } else {
             el.style.display = 'none';
             if (mainContent) mainContent.style.visibility = 'visible';
@@ -508,7 +511,7 @@ class JarvisInterface {
             if (hamburger)   hamburger.style.visibility   = 'visible';
             this.hologram?.stop();
             if (this.holoRecognition) {
-                this.holoRecognition.stop();
+                try { this.holoRecognition.stop(); } catch(e) {}
             }
         }
     }
@@ -520,47 +523,71 @@ class JarvisInterface {
             this.holoRecognition.lang = 'it-IT';
             this.holoRecognition.continuous = false;
             this.holoRecognition.interimResults = true;
+            this._holoVoiceBuffer = '';
             
             this.holoRecognition.onresult = (e) => {
                 let transcript = '';
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     transcript += e.results[i][0].transcript;
                 }
-                const holoInput = document.getElementById('holoInput');
-                if (holoInput) {
-                    holoInput.value = transcript;
-                    if (e.results[0].isFinal) {
-                        setTimeout(() => this.sendHologramMessage(), 100);
-                    }
+                this._holoVoiceBuffer = transcript;
+                const statusEl = document.getElementById('holoStatusText');
+                if (statusEl) statusEl.textContent = `"${transcript.substring(0, 40)}${transcript.length > 40 ? '...' : ''}"`;
+                // Animate wave bars while receiving
+                setHoloWaveActive(true);
+                if (e.results[0].isFinal) {
+                    setTimeout(() => this.sendHologramVoiceMessage(transcript), 100);
                 }
             };
             
-            this.holoRecognition.onerror = () => {
-                console.log('Errore riconoscimento vocale ologramma');
+            this.holoRecognition.onstart = () => {
+                const micBtn = document.getElementById('holoMicBtn');
+                if (micBtn) micBtn.classList.add('listening');
+                const statusEl = document.getElementById('holoStatusText');
+                if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
+                setHoloWaveActive(true);
+            };
+
+            this.holoRecognition.onend = () => {
+                const micBtn = document.getElementById('holoMicBtn');
+                if (micBtn) micBtn.classList.remove('listening');
+                const statusEl = document.getElementById('holoStatusText');
+                if (statusEl && !this._holoProcessing) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                setHoloWaveActive(false);
+            };
+            
+            this.holoRecognition.onerror = (ev) => {
+                const micBtn = document.getElementById('holoMicBtn');
+                if (micBtn) micBtn.classList.remove('listening');
+                setHoloWaveActive(false);
+                const statusEl = document.getElementById('holoStatusText');
+                if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
             };
         }
     }
 
     startHoloListening() {
+        if (!this.holoRecognition) this.initHoloSpeechRecognition();
         if (this.holoRecognition) {
             try {
+                this._holoVoiceBuffer = '';
                 this.holoRecognition.start();
-                const micBtn = document.getElementById('holoMicBtn');
-                if (micBtn) micBtn.classList.add('listening');
-                setTimeout(() => {
-                    if (micBtn) micBtn.classList.remove('listening');
-                }, 5000);
-            } catch(e) {}
+            } catch(e) {
+                // if already started, stop then restart
+                try {
+                    this.holoRecognition.stop();
+                    setTimeout(() => { try { this.holoRecognition.start(); } catch(e2) {} }, 200);
+                } catch(e2) {}
+            }
         }
     }
 
-    async sendHologramMessage() {
-        const input = document.getElementById('holoInput');
-        const msgs  = document.getElementById('holoMessages');
-        if (!input || !msgs) return;
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = '';
+    async sendHologramVoiceMessage(text) {
+        const msgs = document.getElementById('holoMessages');
+        if (!msgs || !text || !text.trim()) return;
+        this._holoProcessing = true;
+
+        const statusEl = document.getElementById('holoStatusText');
 
         const userDiv = document.createElement('div');
         userDiv.className   = 'holo-msg holo-msg-user';
@@ -573,6 +600,8 @@ class JarvisInterface {
         loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
         msgs.appendChild(loadDiv);
         msgs.scrollTop = msgs.scrollHeight;
+        if (statusEl) statusEl.textContent = 'JARVIS STA ELABORANDO...';
+        setHoloWaveActive(true);
 
         try {
             if (!this.holoHistory) this.holoHistory = [];
@@ -593,19 +622,43 @@ class JarvisInterface {
             const reply = data.success ? data.response : 'Errore di sistema, Signore.';
             this.holoHistory.push({ role: 'assistant', content: reply });
             loadDiv.innerHTML = this.formatMessage(reply);
-            loadDiv.classList.remove('holo-typing');
 
             if (this.synthesis && this.hologram) {
                 this.hologram.setSpeaking(true);
-                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 400));
+                if (statusEl) statusEl.textContent = 'JARVIS STA PARLANDO...';
+                setHoloWaveActive(true);
+                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
                 utt.lang  = 'it-IT';
-                utt.onend = () => this.hologram?.setSpeaking(false);
+                utt.rate  = 0.95;
+                utt.onend = () => {
+                    this.hologram?.setSpeaking(false);
+                    setHoloWaveActive(false);
+                    if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                    this._holoProcessing = false;
+                };
                 this.synthesis.speak(utt);
+            } else {
+                setHoloWaveActive(false);
+                if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                this._holoProcessing = false;
             }
         } catch {
             loadDiv.innerHTML = 'Errore di connessione, Signore.';
+            setHoloWaveActive(false);
+            if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
+            this._holoProcessing = false;
         }
         msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    // Keep for backward compatibility but now unused in UI
+    async sendHologramMessage() {
+        const input = document.getElementById('holoInput');
+        if (input && input.value.trim()) {
+            const text = input.value.trim();
+            input.value = '';
+            return this.sendHologramVoiceMessage(text);
+        }
     }
 
     async loadConversations() {
@@ -1320,6 +1373,192 @@ function loginWithGitHub() {
 function logout() {
     localStorage.removeItem('jarvis_token');
     window.location.reload();
+}
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL HELPERS — WAVE ANIMATION
+══════════════════════════════════════════════════════════ */
+function setHoloWaveActive(active) {
+    const waveEl = document.getElementById('holoWaveform');
+    if (!waveEl) return;
+    const bars = waveEl.querySelectorAll('.hbar');
+    bars.forEach(b => {
+        if (active) b.classList.add('active');
+        else { b.classList.remove('active'); b.style.height = '4px'; }
+    });
+}
+
+function setAuthWaveActive(active) {
+    const waveEl = document.getElementById('authHoloWave');
+    if (!waveEl) return;
+    const bars = waveEl.querySelectorAll('.wave-bar');
+    bars.forEach(b => {
+        if (active) b.classList.add('active');
+        else { b.classList.remove('active'); b.style.height = '4px'; }
+    });
+}
+
+/* ══════════════════════════════════════════════════════════
+   AUTH HOLOGRAM VOICE OVERLAY
+══════════════════════════════════════════════════════════ */
+let _authHoloCanvas = null;
+let _authHoloRecognition = null;
+let _authHoloHistory = [];
+let _authHoloProcessing = false;
+
+function openAuthHologramVoice() {
+    const overlay = document.getElementById('authHoloOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+
+    // Start hologram canvas
+    if (!_authHoloCanvas) {
+        _authHoloCanvas = new JarvisHologram('authHoloCanvas', 340);
+    }
+    _authHoloCanvas.start();
+
+    // Init speech recognition
+    initAuthHoloRecognition();
+
+    // Status
+    const statusEl = document.getElementById('authHoloStatusText');
+    if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+}
+
+function closeAuthHologramVoice() {
+    const overlay = document.getElementById('authHoloOverlay');
+    if (overlay) overlay.style.display = 'none';
+    if (_authHoloCanvas) _authHoloCanvas.stop();
+    if (_authHoloRecognition) {
+        try { _authHoloRecognition.stop(); } catch(e) {}
+    }
+    setAuthWaveActive(false);
+}
+
+function initAuthHoloRecognition() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    _authHoloRecognition = new SR();
+    _authHoloRecognition.lang = 'it-IT';
+    _authHoloRecognition.continuous = false;
+    _authHoloRecognition.interimResults = true;
+
+    _authHoloRecognition.onstart = () => {
+        const micBtn = document.getElementById('authHoloMicBtn');
+        if (micBtn) micBtn.classList.add('listening');
+        const statusEl = document.getElementById('authHoloStatusText');
+        if (statusEl) statusEl.textContent = 'IN ASCOLTO...';
+        setAuthWaveActive(true);
+    };
+
+    _authHoloRecognition.onresult = (e) => {
+        let transcript = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            transcript += e.results[i][0].transcript;
+        }
+        const statusEl = document.getElementById('authHoloStatusText');
+        if (statusEl) statusEl.textContent = `"${transcript.substring(0, 40)}${transcript.length > 40 ? '...' : ''}"`;
+        if (e.results[0].isFinal) {
+            setTimeout(() => sendAuthHoloMessage(transcript), 100);
+        }
+    };
+
+    _authHoloRecognition.onend = () => {
+        const micBtn = document.getElementById('authHoloMicBtn');
+        if (micBtn) micBtn.classList.remove('listening');
+        if (!_authHoloProcessing) {
+            const statusEl = document.getElementById('authHoloStatusText');
+            if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+        }
+        setAuthWaveActive(false);
+    };
+
+    _authHoloRecognition.onerror = () => {
+        const micBtn = document.getElementById('authHoloMicBtn');
+        if (micBtn) micBtn.classList.remove('listening');
+        setAuthWaveActive(false);
+        const statusEl = document.getElementById('authHoloStatusText');
+        if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
+    };
+}
+
+function toggleAuthHoloListening() {
+    if (!_authHoloRecognition) initAuthHoloRecognition();
+    if (!_authHoloRecognition) return;
+    try {
+        _authHoloRecognition.start();
+    } catch(e) {
+        try {
+            _authHoloRecognition.stop();
+            setTimeout(() => { try { _authHoloRecognition.start(); } catch(e2) {} }, 250);
+        } catch(e2) {}
+    }
+}
+
+async function sendAuthHoloMessage(text) {
+    if (!text || !text.trim()) return;
+    _authHoloProcessing = true;
+
+    const msgs = document.getElementById('authHoloMessages');
+    const statusEl = document.getElementById('authHoloStatusText');
+
+    if (msgs) {
+        const userDiv = document.createElement('div');
+        userDiv.className = 'holo-msg holo-msg-user';
+        userDiv.textContent = text;
+        msgs.appendChild(userDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        const loadDiv = document.createElement('div');
+        loadDiv.className = 'holo-msg holo-msg-jarvis';
+        loadDiv.innerHTML = '<span class="holo-typing">● ● ●</span>';
+        msgs.appendChild(loadDiv);
+        msgs.scrollTop = msgs.scrollHeight;
+
+        if (statusEl) statusEl.textContent = 'JARVIS STA ELABORANDO...';
+        setAuthWaveActive(true);
+
+        try {
+            _authHoloHistory.push({ role: 'user', content: text });
+
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('jarvis_token') || ''}` },
+                body: JSON.stringify({ messages: _authHoloHistory })
+            });
+            const data = await res.json();
+            const reply = data.success ? data.response : 'Sono J.A.R.V.I.S. Accedi per usarmi al massimo, Signore.';
+            _authHoloHistory.push({ role: 'assistant', content: reply });
+            loadDiv.innerHTML = reply;
+
+            // Speak reply
+            if (window.speechSynthesis) {
+                if (_authHoloCanvas) _authHoloCanvas.setSpeaking(true);
+                if (statusEl) statusEl.textContent = 'JARVIS STA PARLANDO...';
+                setAuthWaveActive(true);
+                const utt = new SpeechSynthesisUtterance(reply.replace(/[*_`#]/g, '').substring(0, 500));
+                utt.lang = 'it-IT';
+                utt.rate = 0.95;
+                utt.onend = () => {
+                    if (_authHoloCanvas) _authHoloCanvas.setSpeaking(false);
+                    setAuthWaveActive(false);
+                    if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                    _authHoloProcessing = false;
+                };
+                window.speechSynthesis.speak(utt);
+            } else {
+                setAuthWaveActive(false);
+                if (statusEl) statusEl.textContent = 'CLICCA IL MICROFONO PER PARLARE';
+                _authHoloProcessing = false;
+            }
+        } catch(err) {
+            loadDiv.textContent = 'Errore di connessione.';
+            setAuthWaveActive(false);
+            if (statusEl) statusEl.textContent = 'ERRORE — RIPROVA';
+            _authHoloProcessing = false;
+        }
+        msgs.scrollTop = msgs.scrollHeight;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -13,17 +13,75 @@
 
     <!-- ══════════════════════════════════ AUTH PAGE ══════════════════════════════════ -->
     <div id="authPage" class="auth-container">
-        <div class="jarvis-hologram">
+        <div class="jarvis-hologram" onclick="openAuthHologramVoice()" title="Clicca per parlare con JARVIS" style="cursor:pointer;">
             <div class="hologram-container">
                 <canvas id="hologramCanvas" width="300" height="300"></canvas>
                 <div class="hologram-ring ring-1"></div>
                 <div class="hologram-ring ring-2"></div>
                 <div class="hologram-ring ring-3"></div>
+                <div class="hologram-click-hint">
+                    <span class="click-pulse"></span>
+                    TOCCA PER PARLARE
+                </div>
             </div>
             <div class="hologram-text">J.A.R.V.I.S.</div>
             <div class="hologram-sub">Just A Rather Very Intelligent System</div>
             <div class="hologram-status">
                 <span class="h-dot"></span> SISTEMA OPERATIVO
+            </div>
+        </div>
+
+        <!-- Auth Voice Hologram Overlay -->
+        <div id="authHoloOverlay" class="auth-holo-overlay" style="display:none;">
+            <div class="auth-holo-inner">
+                <div class="auth-holo-topbar">
+                    <span class="auth-holo-title">J.A.R.V.I.S. — INTERFACCIA VOCALE</span>
+                    <button class="auth-holo-close" onclick="closeAuthHologramVoice()">✕ CHIUDI</button>
+                </div>
+                <div class="auth-holo-body">
+                    <div class="auth-holo-canvas-wrap">
+                        <canvas id="authHoloCanvas" width="340" height="340"></canvas>
+                        <div class="auth-holo-rings">
+                            <div class="ahr ahr1"></div>
+                            <div class="ahr ahr2"></div>
+                            <div class="ahr ahr3"></div>
+                            <div class="ahr ahr4"></div>
+                        </div>
+                        <div class="auth-holo-scanlines"></div>
+                    </div>
+                    <div class="auth-holo-panel">
+                        <div class="auth-holo-status-bar">
+                            <span class="auth-holo-dot"></span>
+                            <span id="authHoloStatusText">IN ASCOLTO...</span>
+                        </div>
+                        <div id="authHoloMessages" class="auth-holo-messages"></div>
+                        <div class="auth-holo-mic-zone">
+                            <button id="authHoloMicBtn" class="auth-holo-mic-btn" onclick="toggleAuthHoloListening()">
+                                <div class="mic-icon-wrap">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                        <line x1="12" y1="19" x2="12" y2="23"/>
+                                        <line x1="8" y1="23" x2="16" y2="23"/>
+                                    </svg>
+                                </div>
+                                <div class="mic-rings">
+                                    <div class="mic-ring mr1"></div>
+                                    <div class="mic-ring mr2"></div>
+                                    <div class="mic-ring mr3"></div>
+                                </div>
+                            </button>
+                            <div class="auth-holo-mic-label">TIENI PREMUTO O CLICCA PER PARLARE</div>
+                        </div>
+                        <div class="auth-holo-waveform" id="authHoloWave">
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-holo-footer">J.A.R.V.I.S. — Sistema Operativo Avanzato | Antonio Pepice</div>
             </div>
         </div>
 
@@ -268,7 +326,7 @@
             </div>
         </div>
 
-        <!-- Ologramma JARVIS fullscreen con voice input -->
+        <!-- Ologramma JARVIS fullscreen — SOLO VOCE -->
         <div id="holoJarvis" class="holo-jarvis" style="display:none;">
             <div class="holo-fullscreen-overlay">
                 <div class="holo-top-bar">
@@ -282,18 +340,41 @@
                             <div class="holo-ring hr1"></div>
                             <div class="holo-ring hr2"></div>
                             <div class="holo-ring hr3"></div>
+                            <div class="holo-ring hr4"></div>
                         </div>
                         <div class="holo-scanlines"></div>
+                        <div class="holo-hex-overlay"></div>
                     </div>
                     <div class="holo-chat-panel">
-                        <div id="holoMessages" class="holo-messages"></div>
-                        <div class="holo-input-row">
-                            <button id="holoMicBtn" class="holo-mic-btn" onclick="window.jarvis.startHoloListening()">🎤</button>
-                            <input type="text" id="holoInput" class="holo-input" placeholder="Parla o scrivi con JARVIS..."
-                                onkeydown="if(event.key==='Enter') window.jarvis.sendHologramMessage()">
-                            <button class="holo-send-btn" onclick="window.jarvis.sendHologramMessage()">▶</button>
+                        <div class="holo-status-strip">
+                            <span class="holo-strip-dot"></span>
+                            <span id="holoStatusText">PRONTO — CLICCA IL MICROFONO</span>
                         </div>
-                        <div class="holo-voice-hint">🎤 Clicca sul microfono per parlare con JARVIS</div>
+                        <div id="holoMessages" class="holo-messages"></div>
+                        <div class="holo-voice-zone">
+                            <div class="holo-waveform" id="holoWaveform">
+                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                                <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+                            </div>
+                            <button id="holoMicBtn" class="holo-mic-btn" onclick="window.jarvis.startHoloListening()">
+                                <div class="holo-mic-inner">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                        <line x1="12" y1="19" x2="12" y2="23"/>
+                                        <line x1="8" y1="23" x2="16" y2="23"/>
+                                    </svg>
+                                </div>
+                                <div class="holo-mic-rings">
+                                    <div class="hmr hmr1"></div>
+                                    <div class="hmr hmr2"></div>
+                                    <div class="hmr hmr3"></div>
+                                </div>
+                            </button>
+                            <div class="holo-voice-hint">INTERFACCIA VOCALE ATTIVA — SOLO VOCE</div>
+                        </div>
                     </div>
                 </div>
                 <div class="holo-label">J.A.R.V.I.S. — Sistema Operativo Avanzato | Creato da Antonio Pepice</div>
