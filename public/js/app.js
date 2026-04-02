@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Frontend App v5.0 FIXED
+   B.A.R.R.Y. — Frontend App v5.1 FIXED
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -40,7 +40,6 @@ const MODE_PROMPTS = {
 ══════════════════════════════════════════════════════════ */
 async function generateFingerprint() {
     try {
-        // Componenti più stabili per dispositivi mobili (evitiamo canvas e webgl che variano)
         const components = [
             navigator.userAgent || 'unknown',
             navigator.language || 'unknown',
@@ -58,7 +57,6 @@ async function generateFingerprint() {
         return await sha256(fingerprint);
     } catch (e) {
         console.error('Fingerprint error:', e);
-        // Fallback stabile
         return await sha256(navigator.userAgent + screen.width + screen.height + 'BARRY_FALLBACK');
     }
 }
@@ -346,34 +344,53 @@ class BarryInterface {
         this.loadConversations();
         this.createNewChat();
         
-        // Fix: Rendi le funzioni accessibili globalmente
         window.barry = this;
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // CAPABILITIES DROPDOWN - FIX PER TOUCH (TELEFONO)
+    // ═══════════════════════════════════════════════════════════
     initCapabilitiesDropdown() {
         const dropdown = document.getElementById('capabilitiesDropdown');
         if (!dropdown) return;
         
         const btn = dropdown.querySelector('.dropdown-btn');
         if (btn) {
+            // Supporto sia click che touch
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+            });
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 dropdown.classList.toggle('open');
             });
         }
         
-        document.addEventListener('click', () => {
-            dropdown.classList.remove('open');
-        });
+        // Chiudi quando si clicca fuori
+        const closeDropdown = (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        };
+        document.addEventListener('click', closeDropdown);
+        document.addEventListener('touchstart', closeDropdown);
         
+        // Seleziona modalità
         const items = dropdown.querySelectorAll('.dropdown-item');
         items.forEach(item => {
-            item.addEventListener('click', () => {
+            const selectMode = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const mode = item.dataset.mode;
                 const label = item.dataset.label;
                 this.setMode(mode, label);
                 dropdown.classList.remove('open');
-            });
+            };
+            item.addEventListener('click', selectMode);
+            item.addEventListener('touchstart', selectMode);
         });
     }
 
@@ -384,6 +401,7 @@ class BarryInterface {
         
         if (this.hamburgerBtn) {
             this.hamburgerBtn.onclick = () => this.toggleSidebar();
+            this.hamburgerBtn.ontouchstart = () => this.toggleSidebar();
         }
         
         if (window.innerWidth < 992) this.closeSidebar();
@@ -482,6 +500,7 @@ class BarryInterface {
             const holoCanvasTrigger = document.getElementById('holoCanvasTrigger');
             if (holoCanvasTrigger) {
                 holoCanvasTrigger.onclick = () => this.startHoloListening();
+                holoCanvasTrigger.ontouchstart = () => this.startHoloListening();
             }
             
             const statusEl = document.getElementById('holoStatusText');
@@ -694,12 +713,12 @@ class BarryInterface {
                 const title    = this.escapeHtml((conv.title || 'Nuova Chat').substring(0, 45));
                 const isActive = this.currentConversationId === conv.id ? 'active' : '';
                 html += `
-                    <div class="conv-item ${isActive}" onclick="window.barry.loadConversation(${conv.id})">
+                    <div class="conv-item ${isActive}" onclick="window.barry.loadConversation(${conv.id})" ontouchstart="window.barry.loadConversation(${conv.id})">
                         <div class="conv-item-icon">💬</div>
                         <div class="conv-item-text">
                             <div class="conv-item-title">${title}</div>
                         </div>
-                        <button class="conv-item-delete" onclick="event.stopPropagation();window.barry.deleteConversation(${conv.id})" title="Elimina">🗑</button>
+                        <button class="conv-item-delete" onclick="event.stopPropagation();window.barry.deleteConversation(${conv.id})" ontouchstart="event.stopPropagation();window.barry.deleteConversation(${conv.id})" title="Elimina">🗑</button>
                     </div>`;
             });
         });
@@ -736,9 +755,6 @@ class BarryInterface {
         } catch (e) { console.error(e); }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // CREATE NEW CHAT - MESSAGGIO PULITO SENZA [CRITTOGRAFATO]
-    // ═══════════════════════════════════════════════════════════
     async createNewChat() {
         try {
             const res  = await fetch('/api/chat/new', {
@@ -753,7 +769,6 @@ class BarryInterface {
                 this.clearMode();
                 this.fileMemory.clear();
                 
-                // MESSAGGIO PULITO - SENZA [CRITTOGRAFATO]
                 const creatorMessage = `Buongiorno! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Posso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
                 this.addMessage('BARRY', creatorMessage, 'assistant', [], true);
@@ -764,9 +779,50 @@ class BarryInterface {
         } catch (e) { console.error(e); }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // GENERAZIONE IMMAGINI - FIX COMPLETO
+    // ═══════════════════════════════════════════════════════════
+    async generateImage(prompt) {
+        this.showTypingIndicator();
+        try {
+            const res = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
+                body: JSON.stringify({ prompt: prompt })
+            });
+            const data = await res.json();
+            this.hideTypingIndicator();
+            
+            if (data.success && data.imageUrl) {
+                const imageHtml = `<div style="margin: 10px 0;"><img src="${data.imageUrl}" alt="${this.escapeHtml(prompt)}" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3);" /><br><span style="font-size: 0.7rem; color: rgba(0,232,255,0.5);">🎨 Immagine generata per: "${this.escapeHtml(prompt)}"</span></div>`;
+                this.addMessage('BARRY', imageHtml, 'assistant', [], true);
+            } else {
+                this.addMessage('BARRY', `❌ Non ho potuto generare l'immagine: ${data.error || 'Errore sconosciuto'}`, 'assistant', [], true);
+            }
+        } catch (err) {
+            this.hideTypingIndicator();
+            this.addMessage('BARRY', `❌ Errore di connessione: ${err.message}`, 'assistant', [], true);
+        }
+    }
+
     async sendMessage() {
         const content = this.userInput.value.trim();
         if (!content) return;
+
+        // Controlla se è un comando /image
+        if (content.toLowerCase().startsWith('/image ')) {
+            const imagePrompt = content.substring(7).trim();
+            if (imagePrompt) {
+                this.addMessage('Tu', content, 'user', [], true);
+                this.userInput.value = '';
+                await this.generateImage(imagePrompt);
+            } else {
+                this.addMessage('Tu', content, 'user', [], true);
+                this.userInput.value = '';
+                this.addMessage('BARRY', 'Per generare un\'immagine, usa il comando: `/image descrizione dell\'immagine`\n\nEsempio: `/image un gatto che dorme su una nuvola`', 'assistant', [], true);
+            }
+            return;
+        }
 
         this.addMessage('Tu', content, 'user', [], true);
         this.userInput.value = '';
@@ -820,7 +876,7 @@ class BarryInterface {
             
             const truncatedContent = fileContent.length > 8000 ? fileContent.substring(0, 8000) + '...[FILE TROPPO LUNGO, TRONCATO]' : fileContent;
             
-            const prompt = `Ho caricato il file "${file.name}". Ecco il suo contenuto:\n\n${truncatedContent}\n\nAnalizza questo file e dimmi di cosa si tratta. Se è codice, spiegamelo. Se è testo, riassumimelo. Se è un'immagine (nome file), dimmi cosa potrebbe contenere in base al nome.`;
+            const prompt = `Ho caricato il file "${file.name}". Ecco il suo contenuto:\n\n${truncatedContent}\n\nAnalizza questo file e dimmi di cosa si tratta. Se è codice, spiegamelo. Se è testo, riassumimelo.`;
             
             this.showTypingIndicator();
             try {
@@ -962,6 +1018,10 @@ class BarryInterface {
     }
 
     formatMessage(content) {
+        // Gestisci immagini HTML
+        if (content.includes('<img')) {
+            return content;
+        }
         content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>
             `<pre><code class="lang-${lang || 'text'}">${this.escapeHtml(code)}</code></pre>`);
         content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -1068,7 +1128,6 @@ class BarryInterface {
         window.location.reload();
     }
 
-    // Auth Hologram Voice
     openAuthHologramVoice() {
         const overlay = document.getElementById('authHoloOverlay');
         if (!overlay) return;
@@ -1087,6 +1146,7 @@ class BarryInterface {
         const authCanvasTrigger = document.getElementById('authHoloCanvasTrigger');
         if (authCanvasTrigger) {
             authCanvasTrigger.onclick = () => this.toggleAuthHoloListening();
+            authCanvasTrigger.ontouchstart = () => this.toggleAuthHoloListening();
         }
     }
 
@@ -1222,7 +1282,7 @@ class BarryInterface {
 }
 
 /* ══════════════════════════════════════════════════════════
-   GLOBAL AUTH FUNCTIONS CON VERIFICA EMAIL
+   GLOBAL AUTH FUNCTIONS
 ══════════════════════════════════════════════════════════ */
 
 let pendingRegistrationEmail = null;
@@ -1310,11 +1370,11 @@ async function sendVerificationCode() {
     }
     
     if (email !== 'antonio.pepice08@gmail.com') {
-        showAuthMessage('❌ Email non autorizzata. Solo email autorizzate possono registrarsi.');
+        showAuthMessage('❌ Email non autorizzata.');
         return;
     }
     
-    showAuthMessage('📧 Invio codice di verifica in corso...', true);
+    showAuthMessage('📧 Invio codice...', true);
     
     try {
         const res = await fetch('/api/auth/register-send-code', {
@@ -1327,7 +1387,7 @@ async function sendVerificationCode() {
         
         if (data.success) {
             pendingRegistrationEmail = email;
-            showAuthMessage('✅ Codice di verifica inviato! Controlla la tua email.', true);
+            showAuthMessage('✅ Codice inviato!', true);
             
             document.getElementById('registerEmailSection').style.display = 'none';
             document.getElementById('registerVerifySection').style.display = 'block';
@@ -1345,16 +1405,16 @@ async function verifyEmailCode() {
     const email = pendingRegistrationEmail;
     
     if (!email) {
-        showAuthMessage('❌ Email non trovata. Richiedi un nuovo codice.');
+        showAuthMessage('❌ Email non trovata.');
         return;
     }
     
     if (code.length < 6) {
-        showAuthMessage('❌ Inserisci il codice a 6 cifre ricevuto via email');
+        showAuthMessage('❌ Inserisci il codice a 6 cifre');
         return;
     }
     
-    showAuthMessage('🔐 Verifica codice in corso...', true);
+    showAuthMessage('🔐 Verifica...', true);
     
     try {
         const res = await fetch('/api/auth/verify-email-code', {
@@ -1367,7 +1427,7 @@ async function verifyEmailCode() {
         
         if (data.success) {
             emailVerified = true;
-            showAuthMessage('✅ Email verificata! Ora completa la registrazione.', true);
+            showAuthMessage('✅ Email verificata!', true);
             
             document.getElementById('registerVerifySection').style.display = 'none';
             document.getElementById('registerFullSection').style.display = 'block';
@@ -1383,7 +1443,7 @@ async function resendVerificationCode() {
     const email = pendingRegistrationEmail;
     
     if (!email) {
-        showAuthMessage('❌ Nessuna email in attesa di verifica.');
+        showAuthMessage('❌ Nessuna email in attesa.');
         return;
     }
     
@@ -1399,7 +1459,7 @@ async function resendVerificationCode() {
         const data = await res.json();
         
         if (data.success) {
-            showAuthMessage('✅ Nuovo codice inviato! Controlla la tua email.', true);
+            showAuthMessage('✅ Nuovo codice inviato!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
@@ -1434,11 +1494,11 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
         return;
     }
     if (password.length < 8) {
-        showAuthMessage('❌ Password troppo corta (min 8 caratteri)');
+        showAuthMessage('❌ Password troppo corta (min 8)');
         return;
     }
     if (secretWord.length < 4) {
-        showAuthMessage('❌ Parola segreta troppo corta (min 4 caratteri)');
+        showAuthMessage('❌ Parola segreta troppo corta (min 4)');
         return;
     }
 
@@ -1461,7 +1521,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
             
             window._pendingGaEmail = email;
             
-            showAuthMessage('📱 Scansiona il QR con Google Authenticator, poi inserisci il codice a 6 cifre.', true);
+            showAuthMessage('📱 Scansiona il QR con Google Authenticator', true);
         } else if (data.success) {
             localStorage.setItem('barry_token', data.token);
             window.barry = new BarryInterface();
@@ -1479,7 +1539,7 @@ async function confirmGoogleAuth() {
     const gaCode = getTfaCode('regGaInputs');
     
     if (gaCode.length < 6) {
-        showAuthMessage('❌ Inserisci il codice a 6 cifre da Google Authenticator');
+        showAuthMessage('❌ Inserisci il codice a 6 cifre');
         return;
     }
     
@@ -1494,7 +1554,7 @@ async function confirmGoogleAuth() {
         if (data.success) {
             localStorage.setItem('barry_token', data.token);
             window.barry = new BarryInterface();
-            showAuthMessage('✅ Registrazione completata! Google Auth attivo.', true);
+            showAuthMessage('✅ Registrazione completata!', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
@@ -1513,7 +1573,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     const fingerprint = await generateFingerprint();
 
     if (email !== 'antonio.pepice08@gmail.com') {
-        showAuthMessage('❌ Email non autorizzata. Accesso riservato.');
+        showAuthMessage('❌ Email non autorizzata.');
         return;
     }
 
@@ -1533,7 +1593,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
         if (data.requiresTwoFactor) {
             section2fa.style.display = 'flex';
             initTfaInputs('tfaInputs');
-            showAuthMessage('🔐 Inserisci il codice 2FA dalla tua app Authenticator');
+            showAuthMessage('🔐 Inserisci il codice 2FA');
             return;
         }
 
@@ -1562,7 +1622,7 @@ async function sendRecoverCode() {
         if (data.success) {
             const sec = document.getElementById('recoverCodeSection');
             if (sec) { sec.style.display = 'flex'; initTfaInputs('recoverTfaInputs'); }
-            showAuthMessage('✅ Contatta l\'amministratore per il reset della password.', true);
+            showAuthMessage('✅ Contatta l\'amministratore.', true);
         } else {
             showAuthMessage(`❌ ${data.error}`);
         }
@@ -1594,7 +1654,7 @@ document.getElementById('recoverForm')?.addEventListener('submit', async (e) => 
         });
         const data = await res.json();
         if (data.success) {
-            showAuthMessage('✅ Password aggiornata! Ora puoi accedere.', true);
+            showAuthMessage('✅ Password aggiornata!', true);
             setTimeout(() => switchAuthTab('login'), 2200);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1622,7 +1682,7 @@ document.getElementById('changePasswordForm')?.addEventListener('submit', async 
         });
         const data = await res.json();
         if (data.success) {
-            showAuthMessage('✅ Password aggiornata! Ora puoi accedere.', true);
+            showAuthMessage('✅ Password aggiornata!', true);
             setTimeout(() => switchAuthTab('login'), 2200);
         } else {
             showAuthMessage(`❌ ${data.error}`);
@@ -1638,7 +1698,7 @@ function closeAuthHologramVoice() {
     }
 }
 
-// Funzioni globali per i bottoni HTML
+// Funzioni globali
 window.toggleHologram = () => window.barry?.toggleHologram();
 window.showProfile = () => window.barry?.showProfile();
 window.logout = () => window.barry?.logout();

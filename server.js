@@ -36,7 +36,7 @@ app.post('/api/code',                barryController.generateCode.bind(barryCont
 app.post('/api/debug',               barryController.debugCode.bind(barryController));
 app.post('/api/explain',             barryController.explain.bind(barryController));
 app.post('/api/exercise',            barryController.createExercise.bind(barryController));
-app.post('/api/generate-image',      barryController.generateImage.bind(barryController));
+app.post('/api/generate-image', barryController.generateImage.bind(barryController));
 app.get('/api/models',               barryController.getModels.bind(barryController));
 app.post('/api/models/switch',       barryController.switchModel.bind(barryController));
 app.get('/api/system/info',          barryController.getSystemInfo.bind(barryController));
