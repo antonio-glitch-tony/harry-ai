@@ -91,7 +91,6 @@ class AIService {
     
     async searchDuckDuckGo(query) {
         return new Promise((resolve) => {
-            // Usa la versione italiana di DuckDuckGo
             const encodedQuery = encodeURIComponent(query + " italiano");
             const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1&t=barry_ai&kl=it-it`;
             
@@ -170,7 +169,6 @@ class AIService {
     async searchWikipedia(query) {
         return new Promise((resolve) => {
             const encodedQuery = encodeURIComponent(query);
-            // Wikipedia ITALIANA
             const url = `https://it.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
             
             const timeout = setTimeout(() => {
@@ -210,7 +208,6 @@ class AIService {
     async searchWikipediaEn(query) {
         return new Promise((resolve) => {
             const encodedQuery = encodeURIComponent(query);
-            // Wikipedia INGLESE
             const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodedQuery}`;
             
             const timeout = setTimeout(() => {
@@ -252,7 +249,6 @@ class AIService {
         const lowerQuery = query.toLowerCase();
         console.log(`📋 Usando fallback per: "${query}"`);
         
-        // DOMANDA "CHI TI HA CREATO"
         if (lowerQuery.includes('chi ti ha creato') || lowerQuery.includes('chi ti ha programmato') || 
             lowerQuery.includes('chi è il tuo creatore') || lowerQuery.includes('tuo creatore')) {
             resolve({
@@ -267,7 +263,6 @@ class AIService {
             return;
         }
         
-        // PERSONAGGI FAMOSI ITALIANI
         if (lowerQuery.includes('pippo baudo')) {
             resolve({
                 success: true,
@@ -307,7 +302,6 @@ class AIService {
             return;
         }
         
-        // GENERAZIONE IMMAGINI
         if (lowerQuery.includes('genera immagine') || lowerQuery.includes('crea immagine') || 
             lowerQuery.includes('disegna') || lowerQuery.includes('immagine di')) {
             const imagePrompt = query.replace(/genera immagine|crea immagine|disegna|immagine di/gi, '').trim();
@@ -323,7 +317,6 @@ class AIService {
             return;
         }
         
-        // NOTIZIE
         if (lowerQuery.includes('notizie') || lowerQuery.includes('news') || lowerQuery.includes('oggi')) {
             const today = new Date().toLocaleDateString('it-IT');
             resolve({
@@ -338,7 +331,6 @@ class AIService {
             return;
         }
         
-        // METEO
         if (lowerQuery.includes('meteo') || lowerQuery.includes('tempo')) {
             resolve({
                 success: true,
@@ -352,7 +344,6 @@ class AIService {
             return;
         }
         
-        // RISPOSTA GENERICA
         resolve({
             success: true,
             results: [{
@@ -364,13 +355,9 @@ class AIService {
         });
     }
 
-    /* ── DETERMINA SE LA DOMANDA RICHIEDE RICERCA WEB ── */
     needsWebSearch(message) {
         const lowerMessage = message.toLowerCase();
-        
-        // Sempre cerca se la domanda è lunga o complessa
         if (message.length > 60) return true;
-        
         const searchTriggers = [
             'chi è', 'cosa è', 'quando è', 'dove è', 'perché', 'come funziona',
             'notizie', 'news', 'oggi', '2025', '2026', 'ultime',
@@ -379,18 +366,14 @@ class AIService {
             'sanremo', 'calcio', 'serie a', 'meteo', 'tempo', 'previsto',
             'pippo', 'baudo', 'celentano', 'raffaella', 'carra', 'berlusconi'
         ];
-        
         return searchTriggers.some(trigger => lowerMessage.includes(trigger));
     }
 
-    /* ── FORMATA I RISULTATI PER IL CONTESTO ── */
     formatSearchResults(results, query) {
         if (!results.success || results.results.length === 0) {
             return `Nessun risultato trovato per "${query}"`;
         }
-        
         let formatted = `📊 **RISULTATI RICERCA per: "${query}"**\n\n`;
-        
         for (let i = 0; i < Math.min(results.results.length, 6); i++) {
             const r = results.results[i];
             if (r.type === 'answer') {
@@ -401,11 +384,9 @@ class AIService {
                 formatted += `• ${r.content}\n\n`;
             }
         }
-        
         return formatted;
     }
 
-    /* ── BASE SYSTEM PROMPT ── */
     getSystemPrompt() {
         return `Sei B.A.R.R.Y. (Brainy Adaptive Responsive Robotic Intelligence), un assistente AI avanzato creato da Antonio Pepice. Chiama l'utente "Sir" o "Signore". Rispondi SEMPRE in italiano.
 
@@ -425,7 +406,6 @@ CAPACITÀ:
 Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e cita le fonti.`;
     }
 
-    /* ── SEND MESSAGE CON RICERCA WEB MIGLIORATA ── */
     async sendMessage(messages, options = {}) {
         try {
             const model = options.model || this.defaultModel;
@@ -436,7 +416,6 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e c
             let webContext = '';
             let didSearch = false;
             
-            // RICERCA WEB AVANZATA
             if (this.needsWebSearch(userQuery)) {
                 console.log(`🌐 Ricerca web avanzata per: "${userQuery.substring(0, 100)}"`);
                 const searchResults = await this.searchWeb(userQuery);
@@ -512,7 +491,6 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e c
         }
     }
 
-    /* ── SPECIAL REQUESTS ── */
     async handleSpecialRequest(type, content, options = {}) {
         const lang = options.language || 'codice generico';
         const prompts = {
@@ -523,7 +501,6 @@ Se hai informazioni dalla ricerca web, usale per rispondere in modo accurato e c
             explain: `Spiega in italiano: ${content}`,
             exercise: `Crea esercizio di ${options.type || 'programmazione'} su: ${content}`
         };
-        
         const prompt = prompts[type] || content;
         return this.sendMessage([{ role: 'user', content: prompt }], options);
     }

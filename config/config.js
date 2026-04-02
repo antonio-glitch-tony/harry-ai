@@ -1,28 +1,34 @@
+/* ═══════════════════════════════════════════════════════════
+   B.A.R.R.Y. — Configurazione v4.1
+   ═══════════════════════════════════════════════════════════ */
 require('dotenv').config();
 
-if (!process.env.OPENROUTER_API_KEY) {
-  console.error('❌ ERRORE: OPENROUTER_API_KEY non è impostata nel file .env');
-  process.exit(1);
-}
-
 module.exports = {
-  openrouterApiKey: process.env.OPENROUTER_API_KEY,
-  siteUrl: process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
-  siteName: process.env.OPENROUTER_SITE_NAME || 'Jarvis AI',
-  port: process.env.PORT || 3000,
-  
-  // Modelli corretti per OpenRouter
-  models: {
-    claude3opus: 'anthropic/claude-3-opus-20240229',
-    claude3sonnet: 'anthropic/claude-3-sonnet-20240229',
-    claude3haiku: 'anthropic/claude-3-haiku-20240307',
-    gpt4: 'openai/gpt-4-turbo-preview',
-    gpt35: 'openai/gpt-3.5-turbo',
-    llama3: 'meta-llama/llama-3-70b-instruct',
-    mistral: 'mistralai/mistral-7b-instruct'
-  },
-  
-  defaultModel: 'openai/gpt-3.5-turbo', // Più stabile e veloce
-  maxTokens: 2000,
-  temperature: 0.7
+    // OpenRouter
+    openrouterApiKey: process.env.OPENROUTER_API_KEY,
+    defaultModel: 'google/gemini-2.0-flash-exp:free',
+    
+    // Limiti
+    maxTokens: 4096,
+    temperature: 0.7,
+    
+    // Sito
+    siteUrl: process.env.SITE_URL || 'http://localhost:3000',
+    siteName: 'B.A.R.R.Y. AI',
+    
+    // Modelli disponibili
+    models: {
+        gemini: 'google/gemini-2.0-flash-exp:free',
+        gpt4: 'openai/gpt-4o-mini',
+        claude: 'anthropic/claude-3-haiku',
+        llama: 'meta-llama/llama-3.2-3b-instruct:free',
+        mistral: 'mistralai/mistral-7b-instruct:free'
+    },
+    
+    // Crittografia
+    encryption: {
+        algorithm: 'aes-256-gcm',
+        keyLength: 32,
+        ivLength: 16
+    }
 };

@@ -42,7 +42,7 @@ app.post('/api/models/switch',       barryController.switchModel.bind(barryContr
 app.get('/api/system/info',          barryController.getSystemInfo.bind(barryController));
 
 /* ═══════════════════════════════════════════════════════════
-   Auth Routes - COMPLETE CON VERIFICA EMAIL
+   Auth Routes - COMPLETE CON CRITTOGRAFIA
 ═══════════════════════════════════════════════════════════ */
 app.post('/api/auth/register-send-code',  barryController.registerSendCode.bind(barryController));
 app.post('/api/auth/verify-email-code',   barryController.verifyEmailCode.bind(barryController));
@@ -57,7 +57,7 @@ app.get('/api/auth/me',                   barryController.me.bind(barryControlle
 app.put('/api/auth/profile',              barryController.updateProfile.bind(barryController));
 app.post('/api/auth/resend-code',         barryController.resendVerificationCode.bind(barryController));
 
-// Route di debug
+// Route di debug (solo per sviluppo)
 app.post('/api/auth/debug/reset-users',   (req, res) => {
     if (global._users) {
         global._users = {};
@@ -72,7 +72,8 @@ app.get('/api/auth/debug/users', (req, res) => {
         email,
         completed: global._users[email].completed,
         hasFingerprint: !!global._users[email].fingerprint,
-        emailVerified: global._users[email].emailVerified || false
+        emailVerified: global._users[email].emailVerified || false,
+        encrypted: !!global._users[email].encryptedData
     })) : [];
     res.json({ success: true, users });
 });
@@ -90,10 +91,11 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         service: 'B.A.R.R.Y.', 
-        version: '4.0.0', 
+        version: '4.1.0', 
         platform: 'OpenRouter',
         creator: 'Antonio Pepice',
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        encryption: 'AES-256-GCM'
     });
 });
 
@@ -123,13 +125,15 @@ const server = http.createServer(app);
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('═'.repeat(60));
-    console.log('🚀 B.A.R.R.Y. v4.0 - Brainy Adaptive Responsive Robotic Intelligence');
+    console.log('🚀 B.A.R.R.Y. v4.1 - Brainy Adaptive Responsive Robotic Intelligence');
     console.log('═'.repeat(60));
     console.log(`📡 Server running on http://localhost:${PORT}`);
     console.log(`👨‍💻 Creato da Antonio Pepice`);
     console.log(`🔐 2FA: Attivo con Google Authenticator`);
     console.log(`📧 Verifica email: Attiva`);
     console.log(`🆔 Fingerprint: SHA-256`);
+    console.log(`🔒 Crittografia: AES-256-GCM per tutti i dati`);
+    console.log(`💬 Messaggi criptati: SI (end-to-end encryption)`);
     console.log(`🤖 AI Model: OpenRouter`);
     console.log(`🖼️ Generazione Immagini: Pollinations AI (gratuita)`);
     console.log('═'.repeat(60));

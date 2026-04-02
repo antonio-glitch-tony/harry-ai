@@ -1,16 +1,19 @@
 /* ═══════════════════════════════════════════════════════════
-   J.A.R.V.I.S. — Chat Database (SQLite) — v2.3 SYNC EDITION
-   Le conversazioni sono legate all'account (user_id).
+   B.A.R.R.Y. — Chat Database (SQLite) — v3.0 ENCRYPTED EDITION
+   • Tutti i messaggi sono criptati con AES-256-GCM
+   • Le conversazioni sono legate all'account (user_id)
    ═══════════════════════════════════════════════════════════ */
 const sqlite3 = require('sqlite3').verbose();
 const path    = require('path');
 const fs      = require('fs');
+const encryptionService = require('../services/encryptionService');
 
 class ChatDatabase {
     constructor() {
         this.db          = null;
         this.isAvailable = false;
         this.dbPath      = null;
+        this.userKeys    = new Map(); // Cache delle chiavi degli utenti (email -> key buffer)
         this.init();
     }
 
@@ -21,13 +24,13 @@ class ChatDatabase {
                 fs.mkdirSync(dataDir, { recursive: true });
                 console.log('📁 Cartella data creata:', dataDir);
             }
-            this.dbPath = path.join(dataDir, 'chats.db');
+            this.dbPath = path.join(dataDir, 'chats_encrypted.db');
             this.db = new sqlite3.Database(this.dbPath, (err) => {
                 if (err) {
                     console.error('❌ Errore connessione database:', err.message);
                     this.isAvailable = false;
                 } else {
-                    console.log('✅ Database SQLite connesso:', this.dbPath);
+                    console.log('✅ Database SQLite connesso (CRITTOGRAFIA ATTIVA):', this.dbPath);
                     this.isAvailable = true;
                     this.migrateDatabase();
                 }
@@ -38,16 +41,43 @@ class ChatDatabase {
         }
     }
 
+    /**
+     * Imposta la chiave di cifratura per un utente
+     * @param {string} userId - Email dell'utente
+     * @param {Buffer} key - Chiave AES-256
+     */
+    setUserKey(userId, key) {
+        if (key && Buffer.isBuffer(key)) {
+            this.userKeys.set(userId, key);
+            console.log(`🔑 Chiave impostata per utente: ${userId}`);
+        }
+    }
+
+    /**
+     * Ottiene la chiave di cifratura per un utente
+     * @param {string} userId - Email dell'utente
+     * @returns {Buffer|null}
+     */
+    getUserKey(userId) {
+        return this.userKeys.get(userId) || null;
+    }
+
+    /**
+     * Rimuove la chiave dalla cache (logout)
+     * @param {string} userId - Email dell'utente
+     */
+    clearUserKey(userId) {
+        this.userKeys.delete(userId);
+        console.log(`🔑 Chiave rimossa per utente: ${userId}`);
+    }
+
     migrateDatabase() {
         if (!this.isAvailable || !this.db) return;
 
-        // Abilita foreign keys
         this.db.run('PRAGMA foreign_keys=ON');
 
-        // Prima verifica la struttura attuale
         this.db.all("PRAGMA table_info(conversations)", (err, columns) => {
             if (err) {
-                console.log('⚠️ Tabella conversations non esiste, verrà creata');
                 this.createFreshTables();
                 return;
             }
@@ -55,78 +85,60 @@ class ChatDatabase {
             const hasUserId = columns && columns.some(col => col.name === 'user_id');
             
             if (!hasUserId && columns && columns.length > 0) {
-                // Tabella esiste ma senza user_id - ricreazione completa
                 console.log('🔄 Migrazione forzata: ricreazione tabella con user_id');
-                
-                // Inizia una transazione
                 this.db.run('BEGIN TRANSACTION');
                 
-                // Crea tabella temporanea
                 this.db.run(`
                     CREATE TABLE conversations_temp (
                         id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id    TEXT NOT NULL DEFAULT 'legacy',
+                        user_id    TEXT NOT NULL,
                         title      TEXT,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 `, (err) => {
                     if (err) {
-                        console.error('❌ Errore creazione tabella temp:', err);
                         this.db.run('ROLLBACK');
                         this.createFreshTables();
                         return;
                     }
                     
-                    // Copia i dati esistenti (user_id sarà 'legacy')
                     this.db.run(`
                         INSERT INTO conversations_temp (id, title, created_at, updated_at)
                         SELECT id, title, created_at, updated_at FROM conversations
                     `, (err) => {
                         if (err) {
-                            console.error('❌ Errore copia dati:', err);
                             this.db.run('ROLLBACK');
                             this.createFreshTables();
                             return;
                         }
                         
-                        // Elimina tabella vecchia
                         this.db.run(`DROP TABLE conversations`, (err) => {
                             if (err) {
-                                console.error('❌ Errore drop tabella:', err);
                                 this.db.run('ROLLBACK');
                                 this.createFreshTables();
                                 return;
                             }
                             
-                            // Rinomina tabella temp
                             this.db.run(`ALTER TABLE conversations_temp RENAME TO conversations`, (err) => {
                                 if (err) {
-                                    console.error('❌ Errore rename tabella:', err);
                                     this.db.run('ROLLBACK');
                                     this.createFreshTables();
                                     return;
                                 }
                                 
-                                // Commit transazione
-                                this.db.run('COMMIT', (err) => {
-                                    if (err) {
-                                        console.error('❌ Errore commit:', err);
-                                    } else {
-                                        console.log('✅ Migrazione completata con successo');
-                                    }
-                                    this.createRemainingTables();
+                                this.db.run('COMMIT', () => {
+                                    console.log('✅ Migrazione completata');
                                 });
+                                this.createRemainingTables();
                             });
                         });
                     });
                 });
             } else if (!columns || columns.length === 0) {
-                // Tabella non esiste
                 console.log('📝 Creazione tabelle da zero');
                 this.createFreshTables();
             } else {
-                // Tabella esiste già con user_id
                 console.log('✅ Tabella conversations già corretta');
                 this.createRemainingTables();
             }
@@ -136,7 +148,6 @@ class ChatDatabase {
     createFreshTables() {
         if (!this.isAvailable || !this.db) return;
         
-        // Crea tabella conversations con struttura corretta
         this.db.run(`
             CREATE TABLE IF NOT EXISTS conversations (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -158,13 +169,13 @@ class ChatDatabase {
     createRemainingTables() {
         if (!this.isAvailable || !this.db) return;
         
-        // Crea tabella messages
+        // Tabella messages con campo content_encrypted (invece di content)
         this.db.run(`
             CREATE TABLE IF NOT EXISTS messages (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 conversation_id INTEGER,
                 role            TEXT,
-                content         TEXT,
+                content_encrypted TEXT NOT NULL,
                 created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
             )
@@ -172,23 +183,19 @@ class ChatDatabase {
             if (err) {
                 console.error('❌ Errore creazione tabella messages:', err);
             } else {
-                console.log('✅ Tabella messages pronta');
+                console.log('✅ Tabella messages (criptata) pronta');
             }
         });
 
-        // Crea indice per velocizzare le query
         this.db.run(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`, (err) => {
             if (err) {
                 console.error('❌ Errore creazione indice:', err.message);
-            } else {
-                console.log('✅ Indice idx_conv_user creato');
             }
         });
 
-        console.log('✅ Database completamente inizializzato');
+        console.log('✅ Database completamente inizializzato con crittografia');
     }
 
-    /* ── CREA CONVERSAZIONE per utente specifico ── */
     createConversation(userId, title) {
         return new Promise((resolve, reject) => {
             if (!this.isAvailable || !this.db) { resolve(Date.now()); return; }
@@ -202,25 +209,109 @@ class ChatDatabase {
         });
     }
 
-    /* ── SALVA MESSAGGIO ── */
-    saveMessage(conversationId, role, content) {
-        return new Promise((resolve, reject) => {
+    /**
+     * Salva un messaggio CRIPTATO
+     * @param {number} conversationId - ID della conversazione
+     * @param {string} role - 'user' o 'assistant'
+     * @param {string} content - Contenuto da criptare
+     * @returns {Promise<number>}
+     */
+    async saveMessage(conversationId, role, content) {
+        return new Promise(async (resolve, reject) => {
             if (!this.isAvailable || !this.db) { resolve(Date.now()); return; }
-            this.db.run(
-                'INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)',
-                [conversationId, role, content],
-                function(err) { if (err) reject(err); else resolve(this.lastID); }
-            );
+            
+            // Ottieni la conversazione per sapere l'user_id
+            this.db.get('SELECT user_id FROM conversations WHERE id = ?', [conversationId], async (err, conv) => {
+                if (err || !conv) {
+                    reject(err || new Error('Conversazione non trovata'));
+                    return;
+                }
+                
+                const userKey = this.getUserKey(conv.user_id);
+                if (!userKey) {
+                    console.error(`❌ Nessuna chiave per l'utente: ${conv.user_id}`);
+                    reject(new Error('Chiave di cifratura non disponibile'));
+                    return;
+                }
+                
+                // Cripta il messaggio
+                const encryptedContent = encryptionService.encrypt(content, userKey);
+                
+                this.db.run(
+                    'INSERT INTO messages (conversation_id, role, content_encrypted) VALUES (?, ?, ?)',
+                    [conversationId, role, encryptedContent],
+                    function(err) { 
+                        if (err) reject(err); 
+                        else resolve(this.lastID); 
+                    }
+                );
+            });
         });
     }
 
-    /* ── AGGIORNA TIMESTAMP ── */
+    /**
+     * Ottiene i messaggi DECRIPTATI di una conversazione
+     * @param {number} conversationId - ID della conversazione
+     * @returns {Promise<Array>}
+     */
+    async getMessages(conversationId) {
+        return new Promise(async (resolve, reject) => {
+            if (!this.isAvailable || !this.db) { resolve([]); return; }
+            
+            // Ottieni la conversazione per sapere l'user_id
+            this.db.get('SELECT user_id FROM conversations WHERE id = ?', [conversationId], async (err, conv) => {
+                if (err || !conv) {
+                    reject(err || new Error('Conversazione non trovata'));
+                    return;
+                }
+                
+                const userKey = this.getUserKey(conv.user_id);
+                if (!userKey) {
+                    console.error(`❌ Nessuna chiave per l'utente: ${conv.user_id}`);
+                    reject(new Error('Chiave di cifratura non disponibile'));
+                    return;
+                }
+                
+                this.db.all(
+                    'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC',
+                    [conversationId],
+                    (err, rows) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        
+                        // Decripta ogni messaggio
+                        const decryptedRows = rows.map(row => {
+                            try {
+                                const decryptedContent = encryptionService.decrypt(row.content_encrypted, userKey);
+                                return {
+                                    ...row,
+                                    content: decryptedContent,
+                                    content_encrypted: undefined // Non restituire il campo criptato
+                                };
+                            } catch (decryptErr) {
+                                console.error('Errore decriptazione messaggio:', decryptErr);
+                                return {
+                                    ...row,
+                                    content: '[MESSAGGIO CRIPTATO - IMPOSSIBILE DECRIPTARE]',
+                                    content_encrypted: undefined
+                                };
+                            }
+                        });
+                        
+                        resolve(decryptedRows || []);
+                    }
+                );
+            });
+        });
+    }
+
     updateConversationTime(conversationId) {
         if (!this.isAvailable || !this.db) return;
         this.db.run('UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [conversationId]);
     }
 
-    /* ── LISTA CONVERSAZIONI per utente ── */
     getConversations(userId) {
         return new Promise((resolve, reject) => {
             if (!this.isAvailable || !this.db) { resolve([]); return; }
@@ -233,19 +324,6 @@ class ChatDatabase {
         });
     }
 
-    /* ── MESSAGGI DI UNA CONVERSAZIONE ── */
-    getMessages(conversationId) {
-        return new Promise((resolve, reject) => {
-            if (!this.isAvailable || !this.db) { resolve([]); return; }
-            this.db.all(
-                'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC',
-                [conversationId],
-                (err, rows) => { if (err) reject(err); else resolve(rows || []); }
-            );
-        });
-    }
-
-    /* ── VERIFICA PROPRIETÀ ── */
     conversationBelongsToUser(conversationId, userId) {
         return new Promise((resolve, reject) => {
             if (!this.isAvailable || !this.db) { resolve(false); return; }
@@ -257,7 +335,6 @@ class ChatDatabase {
         });
     }
 
-    /* ── ELIMINA CONVERSAZIONE ── */
     deleteConversation(conversationId, userId) {
         return new Promise(async (resolve, reject) => {
             if (!this.isAvailable || !this.db) { resolve(); return; }
