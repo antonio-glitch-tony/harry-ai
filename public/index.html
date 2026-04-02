@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>H.A.R.R.Y. - Sistema di Sicurezza Avanzato v4.0</title>
+    <title>H.A.R.R.Y. — Sistema Operativo Avanzato v4.0</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%23000'/><text x='50' y='72' font-size='60' text-anchor='middle' fill='%2300f3ff' font-family='monospace' font-weight='bold'>H</text></svg>">
 </head>
 <body>
 <div id="app">
 
-    <!-- ══════════════════════════════════ AUTH PAGE ══════════════════════════════════ -->
+    <!-- AUTH PAGE -->
     <div id="authPage" class="auth-container">
+
+        <div class="bg-grid"></div>
+
         <div class="jarvis-hologram" id="authHologramTrigger" style="cursor:pointer;">
             <div class="hologram-container">
                 <canvas id="hologramCanvas" width="300" height="300"></canvas>
@@ -35,8 +38,8 @@
         <div id="authHoloOverlay" class="auth-holo-overlay" style="display:none;">
             <div class="auth-holo-inner">
                 <div class="auth-holo-topbar">
-                    <span class="auth-holo-title">H.A.R.R.Y. — INTERFACCIA VOCALE</span>
-                    <button class="auth-holo-close" onclick="closeAuthHologramVoice()">✕ CHIUDI</button>
+                    <span class="auth-holo-title">H.A.R.R.Y. &mdash; INTERFACCIA VOCALE</span>
+                    <button class="auth-holo-close" onclick="closeAuthHologramVoice()">&#10005; CHIUDI</button>
                 </div>
                 <div class="auth-holo-body">
                     <div class="auth-holo-canvas-wrap" id="authHoloCanvasTrigger">
@@ -63,17 +66,20 @@
                         </div>
                     </div>
                 </div>
-                <div class="auth-holo-footer">H.A.R.R.Y. — Sistema Operativo Avanzato | Antonio Pepice</div>
+                <div class="auth-holo-footer">H.A.R.R.Y. &mdash; Sistema Operativo Avanzato | Antonio Pepice</div>
             </div>
         </div>
 
         <div class="auth-box">
-            <div class="security-badge">🔐 Sistema di Sicurezza Avanzato v4.0 | Antonio Pepice</div>
+            <div class="security-badge">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Sistema di Sicurezza Avanzato v4.0 &mdash; Antonio Pepice
+            </div>
 
             <div class="auth-tabs">
                 <button class="auth-tab active"  onclick="switchAuthTab('login')">ACCEDI</button>
                 <button class="auth-tab"          onclick="switchAuthTab('register')">REGISTRATI</button>
-                <button class="auth-tab"          onclick="switchAuthTab('recover')">RECOVER</button>
+                <button class="auth-tab"          onclick="switchAuthTab('recover')">RECUPERO</button>
                 <button class="auth-tab"          onclick="switchAuthTab('changePassword')">PASSWORD</button>
             </div>
 
@@ -81,14 +87,21 @@
                 <input type="email"    id="loginEmail"    placeholder="Email autorizzata" required>
                 <div class="password-wrap">
                     <input type="password" id="loginPassword" placeholder="Password" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('loginPassword',this)">👁</button>
+                    <button type="button" class="eye-btn" onclick="togglePwd('loginPassword',this)" title="Mostra/Nascondi">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
                 <div class="password-wrap">
                     <input type="password" id="loginSecretWord" placeholder="Parola Segreta" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('loginSecretWord',this)">👁</button>
+                    <button type="button" class="eye-btn" onclick="togglePwd('loginSecretWord',this)" title="Mostra/Nascondi">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
                 <div id="login2FASection" class="twofa-section" style="display:none;">
-                    <div class="twofa-label">🔐 Codice 2FA dalla tua app Authenticator</div>
+                    <div class="twofa-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Codice 2FA dalla tua app Authenticator
+                    </div>
                     <div class="twofa-inputs" id="tfaInputs">
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
@@ -103,26 +116,34 @@
             </form>
 
             <form id="registerForm" class="auth-form">
-                <input type="text"     id="regName"            placeholder="Nome" required>
-                <input type="text"     id="regSurname"         placeholder="Cognome" required>
-                <input type="email"    id="regEmail"           placeholder="Email" required>
+                <input type="text"  id="regName"    placeholder="Nome" required>
+                <input type="text"  id="regSurname" placeholder="Cognome" required>
+                <input type="email" id="regEmail"   placeholder="Email" required>
                 <div class="password-wrap">
-                    <input type="password" id="regPassword"    placeholder="Password (min 8 caratteri)" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('regPassword',this)">👁</button>
+                    <input type="password" id="regPassword" placeholder="Password (min 8 caratteri)" required>
+                    <button type="button" class="eye-btn" onclick="togglePwd('regPassword',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
                 <div class="password-wrap">
                     <input type="password" id="regConfirmPassword" placeholder="Conferma Password" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('regConfirmPassword',this)">👁</button>
+                    <button type="button" class="eye-btn" onclick="togglePwd('regConfirmPassword',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
                 <div class="password-wrap">
                     <input type="password" id="regSecretWord" placeholder="Parola Segreta (min 4 caratteri)" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('regSecretWord',this)">👁</button>
+                    <button type="button" class="eye-btn" onclick="togglePwd('regSecretWord',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
-                <div class="security-note">⚠️ Solo email autorizzata — Verifica in 2 step + Parola Segreta + Fingerprint SHA-256</div>
+                <div class="security-note">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Solo email autorizzata &mdash; Verifica in 2 step + Parola Segreta + Fingerprint SHA-256
+                </div>
                 <button type="submit" class="send-button" style="width:100%;padding:12px;">REGISTRATI</button>
-
                 <div id="regGoogleAuthSection" style="display:none;flex-direction:column;align-items:center;gap:10px;margin-top:12px;">
-                    <div class="twofa-label">📱 Scansiona con Google Authenticator</div>
+                    <div class="twofa-label">Scansiona con Google Authenticator</div>
                     <img id="regQrCode" src="" alt="QR Code" style="width:160px;height:160px;border:2px solid var(--primary);border-radius:8px;">
                     <div class="twofa-hint">Dopo aver scansionato, inserisci il codice dall'app e clicca CONFERMA</div>
                     <div class="twofa-inputs" id="regGaInputs">
@@ -133,14 +154,14 @@
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
                     </div>
-                    <button type="button" onclick="confirmGoogleAuth()" class="send-button" style="width:100%;padding:12px;">✅ CONFERMA GOOGLE AUTH</button>
+                    <button type="button" onclick="confirmGoogleAuth()" class="send-button" style="width:100%;padding:12px;">CONFERMA GOOGLE AUTH</button>
                 </div>
             </form>
 
             <form id="recoverForm" class="auth-form">
-                <p class="form-desc">Inserisci la tua email per il recupero.</p>
+                <p class="form-desc">Inserisci la tua email per il recupero dell'accesso.</p>
                 <input type="email" id="recoverEmail" placeholder="Email account" required>
-                <button type="button" onclick="sendRecoverCode()" class="send-button secondary" style="width:100%;padding:12px;">📧 INVIA RICHIESTA</button>
+                <button type="button" onclick="sendRecoverCode()" class="send-button secondary" style="width:100%;padding:12px;">INVIA RICHIESTA</button>
                 <div id="recoverCodeSection" style="display:none;margin-top:12px;display:flex;flex-direction:column;gap:10px;">
                     <div class="twofa-inputs" id="recoverTfaInputs">
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
@@ -151,44 +172,54 @@
                         <input class="tfa-digit" type="text" maxlength="1" inputmode="numeric">
                     </div>
                     <div class="password-wrap">
-                        <input type="password" id="recoverNewPassword"     placeholder="Nuova password">
-                        <button type="button" class="eye-btn" onclick="togglePwd('recoverNewPassword',this)">👁</button>
+                        <input type="password" id="recoverNewPassword" placeholder="Nuova password">
+                        <button type="button" class="eye-btn" onclick="togglePwd('recoverNewPassword',this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
                     </div>
                     <div class="password-wrap">
                         <input type="password" id="recoverConfirmPassword" placeholder="Conferma nuova password">
-                        <button type="button" class="eye-btn" onclick="togglePwd('recoverConfirmPassword',this)">👁</button>
+                        <button type="button" class="eye-btn" onclick="togglePwd('recoverConfirmPassword',this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
                     </div>
-                    <button type="submit" class="send-button" style="width:100%;padding:12px;">🔐 RESETTA PASSWORD</button>
+                    <button type="submit" class="send-button" style="width:100%;padding:12px;">RESETTA PASSWORD</button>
                 </div>
             </form>
 
             <form id="changePasswordForm" class="auth-form">
-                <p class="form-desc">Cambia la password del tuo account HARRY.</p>
-                <input type="email"    id="changeEmail"           placeholder="La tua Email" required>
+                <p class="form-desc">Modifica le credenziali di accesso al sistema H.A.R.R.Y.</p>
+                <input type="email" id="changeEmail" placeholder="La tua Email" required>
                 <div class="password-wrap">
                     <input type="password" id="changeCurrentPassword" placeholder="Password attuale" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('changeCurrentPassword',this)">👁</button>
+                    <button type="button" class="eye-btn" onclick="togglePwd('changeCurrentPassword',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
                 <div class="password-wrap">
-                    <input type="password" id="changeNewPassword"     placeholder="Nuova password" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('changeNewPassword',this)">👁</button>
+                    <input type="password" id="changeNewPassword" placeholder="Nuova password" required>
+                    <button type="button" class="eye-btn" onclick="togglePwd('changeNewPassword',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
                 <div class="password-wrap">
                     <input type="password" id="changeConfirmPassword" placeholder="Conferma nuova password" required>
-                    <button type="button" class="eye-btn" onclick="togglePwd('changeConfirmPassword',this)">👁</button>
+                    <button type="button" class="eye-btn" onclick="togglePwd('changeConfirmPassword',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
                 </div>
-                <button type="submit" class="send-button" style="width:100%;padding:12px;">🔒 AGGIORNA PASSWORD</button>
+                <button type="submit" class="send-button" style="width:100%;padding:12px;">AGGIORNA PASSWORD</button>
             </form>
 
             <div id="authMessage" class="auth-message"></div>
 
             <div class="security-footer">
-                🔐 AES-256 · TLS 1.3 · 2FA Google Authenticator · Fingerprint SHA-256 · Parola Segreta
+                AES-256 &nbsp;&middot;&nbsp; TLS 1.3 &nbsp;&middot;&nbsp; 2FA Google Authenticator &nbsp;&middot;&nbsp; Fingerprint SHA-256 &nbsp;&middot;&nbsp; Parola Segreta
             </div>
         </div>
     </div>
 
-    <!-- ══════════════════════════════════ CHAT PAGE ══════════════════════════════════ -->
+    <!-- CHAT PAGE -->
     <div id="chatPage" style="display:none; position:relative;">
 
         <button class="hamburger-btn" id="hamburgerBtn" onclick="window.harry.toggleSidebar()">
@@ -198,10 +229,11 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">H.A.R.R.Y.</div>
-                <button class="close-sidebar" onclick="window.harry.closeSidebar()">✕</button>
+                <button class="close-sidebar" onclick="window.harry.closeSidebar()">&#10005;</button>
             </div>
             <button class="new-chat-btn-full" onclick="window.harry.createNewChat()">
-                ✦ Nuova Chat
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nuova Chat
             </button>
             <div id="conversationsList" class="conversations-scroll"></div>
         </div>
@@ -217,104 +249,128 @@
                     <div class="status-indicator">
                         <span class="status-led"></span>
                         <span class="status-text">SISTEMA ONLINE</span>
-                        <span class="security-indicator">🔒 CRITTOGRAFIA ATTIVA</span>
+                        <span class="security-indicator">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            CRITTOGRAFIA ATTIVA
+                        </span>
                         <span class="creator-badge">Creato da Antonio Pepice</span>
                     </div>
                     <div class="header-buttons">
-                        <button onclick="window.harry.toggleHologram()" class="holo-btn">🌀 OLOGRAMMA</button>
-                        <button onclick="window.harry.showProfile()" class="profile-btn">👤 PROFILO</button>
-                        <button onclick="logout()" class="logout-btn">🚪 ESC</button>
+                        <button onclick="window.harry.toggleHologram()" class="holo-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+                            OLOGRAMMA
+                        </button>
+                        <button onclick="window.harry.showProfile()" class="profile-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            PROFILO
+                        </button>
+                        <button onclick="logout()" class="logout-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            ESC
+                        </button>
                     </div>
                 </div>
 
                 <div class="chat-container">
                     <div class="chat-messages" id="chatMessages">
                         <div class="welcome-message">
-                            <div class="welcome-icon">🤖</div>
-                            <div class="welcome-text">Benvenuto in HARRY<br>Sistema di Sicurezza Avanzato v4.0</div>
-                            <div class="security-status">🔐 Crittografia End-to-End Attiva | Fingerprint SHA-256</div>
+                            <div class="welcome-icon">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+                            </div>
+                            <div class="welcome-text">Benvenuto in H.A.R.R.Y.<br><span>Sistema di Sicurezza Avanzato v4.0</span></div>
                         </div>
                     </div>
-
-                    <div id="activeModeBar" class="active-mode-bar" style="display:none;">
-                        <span id="activeModeText"></span>
-                        <button onclick="window.harry.clearMode()" class="clear-mode-btn">✕ Esci modalità</button>
-                    </div>
-
-                    <div class="input-container">
-                        <button id="micBtn" class="mic-button" onclick="window.harry.startListening()">🎤</button>
-                        <label for="fileInput" class="file-button">📎</label>
-                        <input type="file" id="fileInput" style="display:none;" onchange="window.harry.uploadFile(this.files[0])">
-                        <textarea id="userInput" placeholder="Scrivi o parla con HARRY..." rows="1"></textarea>
-                        <button id="sendBtn" class="send-button">
-                            <div class="button-glow"></div>
-                            INVIA
-                        </button>
+                    <div class="security-status">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Crittografia End-to-End Attiva &nbsp;|&nbsp; Fingerprint SHA-256
                     </div>
                 </div>
 
-                <!-- MENU A TENDINA PER LE CAPACITÀ AVANZATE -->
-                <div class="capabilities-dropdown-container">
-                    <div class="capabilities-dropdown" id="capabilitiesDropdown">
-                        <button class="dropdown-btn">
-                            <span class="dropdown-icon">⚡</span> Seleziona Modalità <span class="dropdown-arrow">▼</span>
-                        </button>
-                        <div class="dropdown-menu">
-                            <div class="dropdown-group">
-                                <div class="dropdown-group-title">💻 LINGUAGGI DI PROGRAMMAZIONE</div>
-                                <div class="dropdown-item" data-mode="python" data-label="Python">🐍 Python</div>
-                                <div class="dropdown-item" data-mode="javascript" data-label="JavaScript">📜 JavaScript</div>
-                                <div class="dropdown-item" data-mode="typescript" data-label="TypeScript">📘 TypeScript</div>
-                                <div class="dropdown-item" data-mode="java" data-label="Java">☕ Java</div>
-                                <div class="dropdown-item" data-mode="cpp" data-label="C++">⚙️ C++</div>
-                                <div class="dropdown-item" data-mode="c" data-label="C">🔩 C</div>
-                                <div class="dropdown-item" data-mode="csharp" data-label="C#">🔷 C#</div>
-                                <div class="dropdown-item" data-mode="go" data-label="Go">🐹 Go</div>
-                                <div class="dropdown-item" data-mode="rust" data-label="Rust">🦀 Rust</div>
-                                <div class="dropdown-item" data-mode="php" data-label="PHP">🐘 PHP</div>
-                                <div class="dropdown-item" data-mode="ruby" data-label="Ruby">💎 Ruby</div>
-                                <div class="dropdown-item" data-mode="swift" data-label="Swift">🍎 Swift</div>
-                                <div class="dropdown-item" data-mode="kotlin" data-label="Kotlin">📱 Kotlin</div>
-                                <div class="dropdown-item" data-mode="html" data-label="HTML/CSS">🌐 HTML/CSS</div>
-                                <div class="dropdown-item" data-mode="sql" data-label="SQL">🗄️ SQL</div>
-                                <div class="dropdown-item" data-mode="bash" data-label="Bash">💻 Bash</div>
-                            </div>
-                            <div class="dropdown-group">
-                                <div class="dropdown-group-title">🤖 FUNZIONI SPECIALI</div>
-                                <div class="dropdown-item" data-mode="translate" data-label="Traduzione">🌍 Traduzione</div>
-                                <div class="dropdown-item" data-mode="summarize" data-label="Riassunto">📝 Riassunto</div>
-                                <div class="dropdown-item" data-mode="debug" data-label="Debug">🐛 Debug</div>
-                                <div class="dropdown-item" data-mode="explain" data-label="Spiegazione">📚 Spiegazione</div>
-                                <div class="dropdown-item" data-mode="study" data-label="Studio">📖 Studio</div>
-                                <div class="dropdown-item" data-mode="math" data-label="Matematica">∑ Matematica</div>
-                                <div class="dropdown-item" data-mode="creative" data-label="Creativa">🎨 Creativa</div>
-                                <div class="dropdown-item" data-mode="security" data-label="Cybersecurity">🛡️ Security</div>
-                                <div class="dropdown-item" data-mode="devops" data-label="DevOps">🚀 DevOps</div>
-                                <div class="dropdown-item" data-mode="ml" data-label="Machine Learning">🧠 ML/AI</div>
-                            </div>
+                <div id="activeModeBar" class="active-mode-bar" style="display:none;">
+                    <span id="activeModeText"></span>
+                    <button onclick="window.harry.clearMode()" class="clear-mode-btn">&#10005; Esci modalit&agrave;</button>
+                </div>
+
+                <div class="input-container">
+                    <button id="micBtn" class="mic-button" onclick="window.harry.startListening()" title="Microfono">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
+                    <label for="fileInput" class="file-button" title="Allega file">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                    </label>
+                    <input type="file" id="fileInput" style="display:none;" onchange="window.harry.uploadFile(this.files[0])">
+                    <textarea id="userInput" placeholder="Scrivi o parla con H.A.R.R.Y..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-button">
+                        <div class="button-glow"></div>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        INVIA
+                    </button>
+                </div>
+            </div>
+
+            <!-- MENU CAPACITA AVANZATE -->
+            <div class="capabilities-dropdown-container">
+                <div class="capabilities-dropdown" id="capabilitiesDropdown">
+                    <button class="dropdown-btn">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Seleziona Modalit&agrave;
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="dropdown-arrow-icon"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-group">
+                            <div class="dropdown-group-title">LINGUAGGI DI PROGRAMMAZIONE</div>
+                            <div class="dropdown-item" data-mode="python" data-label="Python">Python</div>
+                            <div class="dropdown-item" data-mode="javascript" data-label="JavaScript">JavaScript</div>
+                            <div class="dropdown-item" data-mode="typescript" data-label="TypeScript">TypeScript</div>
+                            <div class="dropdown-item" data-mode="java" data-label="Java">Java</div>
+                            <div class="dropdown-item" data-mode="cpp" data-label="C++">C++</div>
+                            <div class="dropdown-item" data-mode="c" data-label="C">C</div>
+                            <div class="dropdown-item" data-mode="csharp" data-label="C#">C#</div>
+                            <div class="dropdown-item" data-mode="go" data-label="Go">Go</div>
+                            <div class="dropdown-item" data-mode="rust" data-label="Rust">Rust</div>
+                            <div class="dropdown-item" data-mode="php" data-label="PHP">PHP</div>
+                            <div class="dropdown-item" data-mode="ruby" data-label="Ruby">Ruby</div>
+                            <div class="dropdown-item" data-mode="swift" data-label="Swift">Swift</div>
+                            <div class="dropdown-item" data-mode="kotlin" data-label="Kotlin">Kotlin</div>
+                            <div class="dropdown-item" data-mode="html" data-label="HTML/CSS">HTML / CSS</div>
+                            <div class="dropdown-item" data-mode="sql" data-label="SQL">SQL</div>
+                            <div class="dropdown-item" data-mode="bash" data-label="Bash">Bash</div>
+                        </div>
+                        <div class="dropdown-group">
+                            <div class="dropdown-group-title">FUNZIONI SPECIALI</div>
+                            <div class="dropdown-item" data-mode="translate" data-label="Traduzione">Traduzione</div>
+                            <div class="dropdown-item" data-mode="summarize" data-label="Riassunto">Riassunto</div>
+                            <div class="dropdown-item" data-mode="debug" data-label="Debug">Debug</div>
+                            <div class="dropdown-item" data-mode="explain" data-label="Spiegazione">Spiegazione</div>
+                            <div class="dropdown-item" data-mode="study" data-label="Studio">Studio</div>
+                            <div class="dropdown-item" data-mode="math" data-label="Matematica">Matematica</div>
+                            <div class="dropdown-item" data-mode="creative" data-label="Creativa">Creativa</div>
+                            <div class="dropdown-item" data-mode="security" data-label="Cybersecurity">Cybersecurity</div>
+                            <div class="dropdown-item" data-mode="devops" data-label="DevOps">DevOps</div>
+                            <div class="dropdown-item" data-mode="ml" data-label="Machine Learning">ML / AI</div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="security-footer-bar">
-                    <span>🔐 AES-256</span>
-                    <span>📋 Audit Log</span>
-                    <span>👤 Account Autorizzato</span>
-                    <span>🔑 2FA Attivo</span>
-                    <span>📱 Google Auth</span>
-                    <span>🆔 Fingerprint SHA-256</span>
-                    <span>🔤 Parola Segreta</span>
-                    <span>👨‍💻 Antonio Pepice</span>
-                </div>
+            <div class="security-footer-bar">
+                <span>AES-256</span>
+                <span>Audit Log</span>
+                <span>Account Autorizzato</span>
+                <span>2FA Attivo</span>
+                <span>Google Auth</span>
+                <span>Fingerprint SHA-256</span>
+                <span>Parola Segreta</span>
+                <span>Antonio Pepice</span>
             </div>
         </div>
 
-        <!-- Ologramma HARRY fullscreen — CLICCA SULL'OLOGRAMMA PER PARLARE -->
+        <!-- Ologramma HARRY fullscreen -->
         <div id="holoHarry" class="holo-jarvis" style="display:none;">
             <div class="holo-fullscreen-overlay">
                 <div class="holo-top-bar">
                     <div class="holo-title-bar">H.A.R.R.Y. <span class="holo-online-dot"></span> ONLINE</div>
-                    <button class="holo-close" onclick="window.harry.toggleHologram()">✕ CHIUDI</button>
+                    <button class="holo-close" onclick="window.harry.toggleHologram()">&#10005; CHIUDI</button>
                 </div>
                 <div class="holo-body">
                     <div class="holo-canvas-wrap" id="holoCanvasTrigger">
@@ -342,12 +398,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="holo-label">H.A.R.R.Y. — Sistema Operativo Avanzato | Creato da Antonio Pepice</div>
+                <div class="holo-label">H.A.R.R.Y. &mdash; Sistema Operativo Avanzato &nbsp;|&nbsp; Creato da Antonio Pepice</div>
             </div>
         </div>
 
-        <div id="speakingIndicator"  class="speaking-indicator"  style="display:none;">🔴 HARRY STA PARLANDO...</div>
-        <div id="listeningIndicator" class="listening-indicator" style="display:none;">🎤 IN ASCOLTO...</div>
+        <div id="speakingIndicator" class="speaking-indicator" style="display:none;">
+            <span class="ind-dot red-dot"></span> H.A.R.R.Y. STA PARLANDO
+        </div>
+        <div id="listeningIndicator" class="listening-indicator" style="display:none;">
+            <span class="ind-dot cyan-dot"></span> IN ASCOLTO
+        </div>
     </div>
 
 </div>
