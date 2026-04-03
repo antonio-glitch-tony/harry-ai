@@ -40,7 +40,7 @@ app.post('/api/generate-image',      barryController.generateImage.bind(barryCon
 app.get('/api/models',               barryController.getModels.bind(barryController));
 app.post('/api/models/switch',       barryController.switchModel.bind(barryController));
 app.get('/api/system/info',          barryController.getSystemInfo.bind(barryController));
-app.get('/api/weather',              barryController.getWeather.bind(barryController));  // NUOVA ROTTA METEO
+app.get('/api/weather',              barryController.getWeather.bind(barryController));
 
 /* ═══════════════════════════════════════════════════════════
    Auth Routes - COMPLETE CON CRITTOGRAFIA
@@ -92,7 +92,7 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         service: 'B.A.R.R.Y.', 
-        version: '4.1.0', 
+        version: '4.2.0', 
         platform: 'OpenRouter',
         creator: 'Antonio Pepice',
         uptime: process.uptime(),
@@ -126,7 +126,7 @@ const server = http.createServer(app);
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('═'.repeat(60));
-    console.log('🚀 B.A.R.R.Y. v4.1 - Brainy Adaptive Responsive Robotic Intelligence');
+    console.log('🚀 B.A.R.R.Y. v4.2 - Brainy Adaptive Responsive Robotic Intelligence');
     console.log('═'.repeat(60));
     console.log(`📡 Server running on http://localhost:${PORT}`);
     console.log(`👨‍💻 Creato da Antonio Pepice`);
@@ -137,6 +137,8 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`💬 Messaggi criptati: SI (end-to-end encryption)`);
     console.log(`🤖 AI Model: OpenRouter`);
     console.log(`🖼️ Generazione Immagini: Pollinations AI (gratuita)`);
+    console.log(`🌤️ Meteo: wttr.in`);
+    console.log(`⏰ Timezone: Europe/Rome`);
     console.log('═'.repeat(60));
 });
 

@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Frontend App v5.2 COMPLETELY FIXED
+   B.A.R.R.Y. — Frontend App v5.3 COMPLETELY FIXED
    • FIX: Login persistente
-   • FIX: Orario chat con Mattino/Pomeriggio/Sera
+   • FIX: Orario ROME con Mattino/Pomeriggio/Sera
    • FIX: Immagini /image mostrate correttamente
    • FIX: Ricerca web funzionante
+   • FIX: Persistenza chat
    • NUOVA: Funzione METEO (/meteo città)
    • NUOVA: Supporto immagini incollate
    Autore: Antonio Pepice
@@ -42,7 +43,7 @@ const MODE_PROMPTS = {
 };
 
 /* ══════════════════════════════════════════════════════════
-   GENERA IMPRONTA DIGITALE (FINGERPRINT) - VERSIONE STABILE PER TELEFONO
+   GENERA IMPRONTA DIGITALE (FINGERPRINT)
 ══════════════════════════════════════════════════════════ */
 async function generateFingerprint() {
     try {
@@ -292,28 +293,42 @@ class BarryInterface {
         this._startAuthHologram();
     }
 
-    /* ── OTTIENE SALUTO BASATO SULL'ORARIO ── */
-    getTimeBasedGreeting() {
+    /* ── OTTIENE SALUTO BASATO SULL'ORARIO DI ROME ── */
+    async getTimeBasedGreeting() {
+        try {
+            const res = await fetch('/api/system/info', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                let greeting = '';
+                if (data.timeOfDay === 'Mattino') greeting = 'Buongiorno';
+                else if (data.timeOfDay === 'Pomeriggio') greeting = 'Buon pomeriggio';
+                else greeting = 'Buonasera';
+                
+                return {
+                    greeting: greeting,
+                    timeOfDay: data.timeOfDay,
+                    formattedTime: data.time,
+                    formattedDate: data.date,
+                    day: data.day
+                };
+            }
+        } catch(e) {
+            console.log('Errore recupero orario, uso locale');
+        }
+        // Fallback locale
         const now = new Date();
         const hours = now.getHours();
-        let timeOfDay = '';
-        let greeting = '';
-        
-        if (hours < 12) {
-            timeOfDay = 'Mattino';
-            greeting = 'Buongiorno';
-        } else if (hours < 18) {
-            timeOfDay = 'Pomeriggio';
-            greeting = 'Buon pomeriggio';
-        } else {
-            timeOfDay = 'Sera';
-            greeting = 'Buonasera';
-        }
-        
-        const formattedTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-        const formattedDate = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-        
-        return { greeting, timeOfDay, formattedTime, formattedDate };
+        let timeOfDay = hours < 12 ? 'Mattino' : (hours < 18 ? 'Pomeriggio' : 'Sera');
+        let greeting = timeOfDay === 'Mattino' ? 'Buongiorno' : (timeOfDay === 'Pomeriggio' ? 'Buon pomeriggio' : 'Buonasera');
+        return {
+            greeting: greeting,
+            timeOfDay: timeOfDay,
+            formattedTime: now.toLocaleTimeString('it-IT'),
+            formattedDate: now.toLocaleDateString('it-IT'),
+            day: now.toLocaleDateString('it-IT', { weekday: 'long' })
+        };
     }
 
     async verifyAuth() {
@@ -377,9 +392,6 @@ class BarryInterface {
         window.barry = this;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // CAPABILITIES DROPDOWN - FIX PER TOUCH (TELEFONO) - VERTICALE
-    // ═══════════════════════════════════════════════════════════
     initCapabilitiesDropdown() {
         const dropdown = document.getElementById('capabilitiesDropdown');
         if (!dropdown) return;
@@ -744,6 +756,7 @@ class BarryInterface {
             if (data.success) {
                 this.conversations = data.conversations || [];
                 this.renderConversationsList();
+                console.log(`📋 Caricate ${this.conversations.length} conversazioni`);
             }
         } catch (e) { console.error(e); }
     }
@@ -842,9 +855,9 @@ class BarryInterface {
                 this.clearMode();
                 this.fileMemory.clear();
                 
-                const { greeting, timeOfDay, formattedTime, formattedDate } = this.getTimeBasedGreeting();
+                const { greeting, timeOfDay, formattedTime, formattedDate, day } = await this.getTimeBasedGreeting();
                 
-                const creatorMessage = `${greeting}, Signore! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Oggi è ${formattedDate}, sono le ${formattedTime} (${timeOfDay}).\n\nPosso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
+                const creatorMessage = `${greeting}, Signore! Sono B.A.R.R.Y., il suo assistente personale creato da **Antonio Pepice**. Oggi è ${formattedDate} (${day}), sono le ${formattedTime} (${timeOfDay}).\n\nPosso aiutarla con qualsiasi linguaggio di programmazione, analisi file, traduzioni, matematica e molto altro. Come posso assisterla oggi?`;
                 
                 this.addMessage('BARRY', creatorMessage, 'assistant', [], true);
                 await this.loadConversations();
@@ -854,9 +867,9 @@ class BarryInterface {
         } catch (e) { console.error(e); }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // GENERAZIONE IMMAGINI - FIX COMPLETO
-    // ═══════════════════════════════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════
+       GENERAZIONE IMMAGINI - FIX COMPLETO
+    ═══════════════════════════════════════════════════════════ */
     async generateImage(prompt) {
         this.showTypingIndicator();
         try {
@@ -869,9 +882,11 @@ class BarryInterface {
             this.hideTypingIndicator();
             
             if (data.success && data.imageUrl) {
+                // Aggiungi timestamp per evitare cache
+                const imageUrlWithCache = `${data.imageUrl}&_t=${Date.now()}`;
                 const imageHtml = `<div style="margin: 10px 0;">
-                    <img src="${data.imageUrl}" alt="${this.escapeHtml(prompt)}" style="max-width: 100%; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3); background: #0a0a0a;" 
-                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%230a0a0a\\'/%3E%3Ctext x=\\'100\\' y=\\'100\\' text-anchor=\\'middle\\' fill=\\'%2300e8ff\\' font-size=\\'12\\'%3EImmagine non disponibile%3C/text%3E%3C/svg%3E';" />
+                    <img src="${imageUrlWithCache}" alt="${this.escapeHtml(prompt)}" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid rgba(0,232,255,0.3); background: #0a0a0a; object-fit: contain;" 
+                         onload="this.style.opacity='1'" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'400\\' height=\\'400\\' viewBox=\\'0 0 400 400\\'%3E%3Crect width=\\'400\\' height=\\'400\\' fill=\\'%230a0a0a\\'/%3E%3Ctext x=\\'200\\' y=\\'200\\' text-anchor=\\'middle\\' fill=\\'%2300e8ff\\' font-size=\\'14\\'%3E🖼️ Immagine generata%3C/text%3E%3C/svg%3E';" />
                     <br><span style="font-size: 0.7rem; color: rgba(0,232,255,0.5);">🎨 Immagine generata per: "${this.escapeHtml(prompt)}"</span>
                 </div>`;
                 this.addMessage('BARRY', imageHtml, 'assistant', [], true);
