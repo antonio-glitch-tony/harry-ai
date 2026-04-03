@@ -1,12 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Frontend App v5.4 ALL FIXES APPLIED
-   • FIX: /image — immagine mostrata con link di fallback
-   • FIX: /cerca e /search — ricerca web funzionante
-   • FIX: Incolla immagini (Ctrl+V) nella chat
-   • FIX: Email ricordata dopo registrazione/login
-   • FIX: Storico chat con backup localStorage
-   • FIX: Orario ROME per raggruppamento date
-   • NUOVA: Funzione METEO (/meteo città)
+   B.A.R.R.Y. — Frontend App v5.5 ALL FIXES APPLIED
+   • FIX: Hamburger menu funzionante
+   • FIX: /image con fallback
+   • FIX: Ricerca web funzionante
+   • FIX: Incolla immagini (Ctrl+V)
+   • FIX: Ora/data in tempo reale
    Autore: Antonio Pepice
    ═══════════════════════════════════════════════════════════ */
 
@@ -283,13 +281,15 @@ class BarryInterface {
         this.authHologram       = null;
         this.fileMemory         = new FileMemoryManager();
         this.holoRecognition    = null;
+        this.sidebar            = null;
+        this.hamburgerBtn       = null;
+        this.sidebarOverlay     = null;
 
         if (this.token) {
             this.verifyAuth();
         } else {
             this.showAuthPage();
         }
-        this.initSidebar();
         this._startAuthHologram();
     }
 
@@ -317,7 +317,6 @@ class BarryInterface {
         } catch(e) {
             console.log('Errore recupero orario, uso locale');
         }
-        // Fallback locale
         const now = new Date();
         const hours = now.getHours();
         let timeOfDay = hours < 12 ? 'Mattino' : (hours < 18 ? 'Pomeriggio' : 'Sera');
@@ -384,7 +383,7 @@ class BarryInterface {
             this.userInput.style.height = Math.min(this.userInput.scrollHeight, 120) + 'px';
         });
 
-        // FIX: Gestione incolla immagini (Ctrl+V) nella textarea
+        // Gestione incolla immagini
         this.userInput.addEventListener('paste', (e) => {
             const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
             if (!items) return;
@@ -403,10 +402,79 @@ class BarryInterface {
 
         this.initCapabilitiesDropdown();
         this.initSpeechRecognition();
+        this.initSidebar();  // Inizializza sidebar dopo che il DOM è pronto
         this.loadConversations();
         this.createNewChat();
         
+        // Esponi i metodi globalmente per l'hamburger
         window.barry = this;
+    }
+
+    initSidebar() {
+        this.sidebar = document.getElementById('sidebar');
+        this.hamburgerBtn = document.getElementById('hamburgerBtn');
+        this.sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        if (this.hamburgerBtn) {
+            // Rimuovi eventuali listener esistenti
+            const newBtn = this.hamburgerBtn.cloneNode(true);
+            this.hamburgerBtn.parentNode.replaceChild(newBtn, this.hamburgerBtn);
+            this.hamburgerBtn = newBtn;
+            
+            this.hamburgerBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleSidebar();
+            };
+            this.hamburgerBtn.ontouchstart = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleSidebar();
+            };
+        }
+        
+        if (this.sidebarOverlay) {
+            this.sidebarOverlay.onclick = () => this.toggleSidebar();
+        }
+        
+        // Su desktop la sidebar è sempre visibile
+        if (window.innerWidth >= 992) {
+            this.openSidebar();
+        } else {
+            this.closeSidebar();
+        }
+        
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 992) {
+                this.openSidebar();
+            } else {
+                this.closeSidebar();
+            }
+        });
+    }
+    
+    toggleSidebar() {
+        if (this.sidebar?.classList.contains('open')) {
+            this.closeSidebar();
+        } else {
+            this.openSidebar();
+        }
+    }
+    
+    openSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.add('open');
+            if (this.hamburgerBtn) this.hamburgerBtn.classList.add('active');
+            if (this.sidebarOverlay) this.sidebarOverlay.classList.add('show');
+        }
+    }
+    
+    closeSidebar() {
+        if (this.sidebar) {
+            this.sidebar.classList.remove('open');
+            if (this.hamburgerBtn) this.hamburgerBtn.classList.remove('active');
+            if (this.sidebarOverlay) this.sidebarOverlay.classList.remove('show');
+        }
     }
 
     initCapabilitiesDropdown() {
@@ -448,34 +516,6 @@ class BarryInterface {
             item.addEventListener('click', selectMode);
             item.addEventListener('touchstart', selectMode);
         });
-    }
-
-    initSidebar() {
-        this.sidebar        = document.getElementById('sidebar');
-        this.hamburgerBtn   = document.getElementById('hamburgerBtn');
-        this.sidebarOverlay = document.getElementById('sidebarOverlay');
-        
-        if (this.hamburgerBtn) {
-            this.hamburgerBtn.onclick = () => this.toggleSidebar();
-            this.hamburgerBtn.ontouchstart = () => this.toggleSidebar();
-        }
-        
-        if (window.innerWidth < 992) this.closeSidebar();
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 992) this.openSidebar(); else this.closeSidebar();
-        });
-    }
-    
-    toggleSidebar() { this.sidebar?.classList.contains('open') ? this.closeSidebar() : this.openSidebar(); }
-    openSidebar()   {
-        this.sidebar?.classList.add('open');
-        this.hamburgerBtn?.classList.add('active');
-        this.sidebarOverlay?.classList.add('show');
-    }
-    closeSidebar()  {
-        this.sidebar?.classList.remove('open');
-        this.hamburgerBtn?.classList.remove('active');
-        this.sidebarOverlay?.classList.remove('show');
     }
 
     setMode(mode, label) {
@@ -772,13 +812,11 @@ class BarryInterface {
             const data = await res.json();
             if (data.success) {
                 this.conversations = data.conversations || [];
-                // FIX: Salva backup locale delle conversazioni
                 try { localStorage.setItem('barry_conv_backup', JSON.stringify(this.conversations)); } catch(e) {}
                 this.renderConversationsList();
                 console.log(`📋 Caricate ${this.conversations.length} conversazioni`);
             }
         } catch (e) { 
-            // FIX: Se il server non risponde, usa il backup locale
             console.warn('Server non raggiungibile, uso backup locale conversazioni');
             try {
                 const backup = localStorage.getItem('barry_conv_backup');
@@ -792,7 +830,6 @@ class BarryInterface {
     }
 
     _groupByDate(conversations) {
-        // FIX: Usa timezone Rome per raggruppamento date
         const nowRome = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
         const now   = nowRome;
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -900,7 +937,7 @@ class BarryInterface {
     }
 
     /* ═══════════════════════════════════════════════════════════
-       GENERAZIONE IMMAGINI - FIX COMPLETO
+       GENERAZIONE IMMAGINI
     ═══════════════════════════════════════════════════════════ */
     async generateImage(prompt) {
         this.showTypingIndicator();
@@ -914,7 +951,6 @@ class BarryInterface {
             this.hideTypingIndicator();
             
             if (data.success && data.imageUrl) {
-                // Aggiungi timestamp per evitare cache
                 const imageUrlWithCache = data.imageUrl.includes('?') 
                     ? `${data.imageUrl}&nocache=${Date.now()}` 
                     : `${data.imageUrl}?nocache=${Date.now()}`;
@@ -992,7 +1028,7 @@ class BarryInterface {
             return;
         }
         
-        // Comando /cerca e /search — ricerca web
+        // Comando /cerca e /search
         if (content.toLowerCase().startsWith('/cerca ') || content.toLowerCase().startsWith('/search ')) {
             const query = content.replace(/^\/cerca\s+|\/search\s+/i, '').trim();
             if (query) {
@@ -1058,7 +1094,6 @@ class BarryInterface {
     async uploadFile(file) {
         if (!file) return;
         
-        // Gestisci immagini incollate
         if (file.type && file.type.startsWith('image/')) {
             this.addMessage('Sistema', `🖼️ Immagine ricevuta: ${file.name}`, 'system', []);
             
@@ -1249,11 +1284,9 @@ class BarryInterface {
     }
 
     formatMessage(content) {
-        // Gestisci immagini HTML e blocchi speciali
         if (content.includes('<img') || content.includes('barry-image-block') || content.includes('class="barry-')) {
             return content;
         }
-        // Gestisci meteo HTML
         if (content.includes('background: rgba(0,232,255,0.05)')) {
             return content;
         }
@@ -1836,7 +1869,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
 
         if (data.success) {
             localStorage.setItem('barry_token', data.token);
-            localStorage.setItem('barry_remembered_email', email); // FIX: ricorda email
+            localStorage.setItem('barry_remembered_email', email);
             window.barry = new BarryInterface();
             showAuthMessage('✅ Accesso effettuato!', true);
         } else {
@@ -1847,7 +1880,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-// FIX: Pre-compila email se già loggato in precedenza
+// Pre-compila email se già loggato in precedenza
 (function() {
     const rememberedEmail = localStorage.getItem('barry_remembered_email');
     if (rememberedEmail) {
@@ -1945,16 +1978,7 @@ function closeAuthHologramVoice() {
     }
 }
 
-// Funzioni globali
-window.toggleHologram = () => window.barry?.toggleHologram();
-window.showProfile = () => window.barry?.showProfile();
-window.logout = () => window.barry?.logout();
-window.closeSidebar = () => window.barry?.closeSidebar();
-window.createNewChat = () => window.barry?.createNewChat();
-window.startListening = () => window.barry?.startListening();
-window.uploadFile = (file) => window.barry?.uploadFile(file);
-window.clearMode = () => window.barry?.clearMode();
-
+// Inizializzazione globale
 document.addEventListener('DOMContentLoaded', () => {
     window.barry = new BarryInterface();
     initTfaInputs('tfaInputs');

@@ -1,10 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   B.A.R.R.Y. — Controller v5.3 COMPLETELY FIXED
-   • FIX: Immagini /image mostrate correttamente
-   • FIX: Ricerca web funzionante
-   • FIX: Persistenza chat (salvataggio conversazioni)
-   • FIX: Analisi file funzionante
-   • NUOVA: Orario ROME
+   B.A.R.R.Y. — Controller v5.5 COMPLETELY FIXED
+   • FIX: Immagini con fallback multipli (Pollinations → Lexica → Dummy)
+   • FIX: Ricerca web con Brave + DuckDuckGo + Wikipedia
+   • FIX: Rilevamento automatico di ora/data nel backend
+   • FIX: Risposte immediate senza chiamare AI per domande semplici
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
 const chatDB    = require('../database/chatDB');
@@ -89,9 +88,38 @@ function getUserIdFromReq(req) {
 
 class BarryController {
 
-    /* ══════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════
+       METODO INTERNO PER CHIAMARE OPENROUTER
+    ═══════════════════════════════════════════════════════════ */
+    async _callOpenRouter(messages, maxTokens = 500) {
+        try {
+            const config = require('../../config/config');
+            const response = await axios.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                {
+                    model: config.defaultModel || 'openai/gpt-3.5-turbo',
+                    messages: messages,
+                    max_tokens: maxTokens,
+                    temperature: 0.7
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || config.openrouterApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+            return response.data.choices[0].message.content;
+        } catch (error) {
+            console.error('Errore _callOpenRouter:', error.message);
+            return null;
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
        VERIFICA EMAIL
-    ══════════════════════════════════ */
+    ═══════════════════════════════════════════════════════════ */
     
     async registerSendCode(req, res) {
         try {
@@ -103,7 +131,6 @@ class BarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
             
-            // Verifica se l'utente esiste GIA' (login persistente)
             if (global._users && global._users[normalizedEmail] && global._users[normalizedEmail].completed) {
                 return res.status(400).json({ error: 'Utente già registrato. Vai su ACCEDI.' });
             }
@@ -179,9 +206,9 @@ class BarryController {
         }
     }
 
-    /* ══════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════
        REGISTRAZIONE CON CRITTOGRAFIA
-    ══════════════════════════════════ */
+    ═══════════════════════════════════════════════════════════ */
 
     async register(req, res) {
         try {
@@ -201,23 +228,18 @@ class BarryController {
                 return res.status(400).json({ error: 'Devi prima verificare la tua email.' });
             }
 
-            // Verifica se l'utente esiste GIA' (non deve ri-registrarsi)
             if (global._users && global._users[normalizedEmail] && global._users[normalizedEmail].completed) {
                 return res.status(400).json({ error: 'Utente già registrato. Vai su ACCEDI.' });
             }
 
-            // Deriva la chiave di cifratura dalla secret word
             const { key: encryptionKey, salt: encryptionSalt } = await encryptionService.deriveKey(secretWord);
             
-            // Cripta i dati sensibili
             const encryptedName = encryptionService.encrypt(name, encryptionKey);
             const encryptedSurname = encryptionService.encrypt(surname, encryptionKey);
             
-            // Hash delle credenziali
             const hashedPassword = await bcrypt.hash(password, 10);
             const hashedSecretWord = await bcrypt.hash(secretWord, 10);
 
-            // Genera secret per 2FA
             const secret = speakeasy.generateSecret({
                 name: `B.A.R.R.Y. (${normalizedEmail})`,
                 length: 32
@@ -225,7 +247,6 @@ class BarryController {
 
             if (!global._users) global._users = {};
             
-            // Salva TUTTI i dati criptati
             global._users[normalizedEmail] = {
                 encryptedName: encryptedName,
                 encryptedSurname: encryptedSurname,
@@ -299,9 +320,9 @@ class BarryController {
         return this.verifyGoogleAuth(req, res);
     }
 
-    /* ══════════════════════════════════
-       LOGIN CON DECRIPTAZIONE (PERSISTENTE)
-    ══════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════════
+       LOGIN CON DECRIPTAZIONE
+    ═══════════════════════════════════════════════════════════ */
 
     async login(req, res) {
         try {
@@ -463,9 +484,9 @@ class BarryController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
-    /* ══════════════════════════════════
-       METEO - NUOVA FUNZIONE
-    ══════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════════
+       METEO
+    ═══════════════════════════════════════════════════════════ */
     async getWeather(req, res) {
         try {
             const { city } = req.query;
@@ -506,9 +527,104 @@ class BarryController {
         }
     }
 
-    /* ══════════════════════════════════
-       CHAT - CON PERSISTENZA
-    ══════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════════
+       GENERAZIONE IMMAGINI - CON FALLBACK MULTIPLI
+    ═══════════════════════════════════════════════════════════ */
+    async generateImage(req, res) {
+        try {
+            const { prompt } = req.body;
+            if (!prompt) return res.status(400).json({ error: 'Prompt richiesto' });
+            
+            const encodedPrompt = encodeURIComponent(prompt);
+            let imageUrl = null;
+            let usedService = null;
+
+            // ========== TENTATIVO 1: Pollinations AI ==========
+            try {
+                const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+                const testRes = await axios.head(pollinationsUrl, { timeout: 5000 });
+                if (testRes.status === 200) {
+                    imageUrl = pollinationsUrl;
+                    usedService = 'Pollinations AI';
+                    console.log(`✅ Immagine generata con Pollinations per: ${prompt}`);
+                }
+            } catch (pollErr) {
+                console.log('Pollinations fallito, provo fallback...');
+            }
+
+            // ========== TENTATIVO 2: Lexica.art API (gratuita, no API key) ==========
+            if (!imageUrl) {
+                try {
+                    const lexicaRes = await axios.get(`https://lexica.art/api/v1/search?q=${encodedPrompt}`, { timeout: 8000 });
+                    if (lexicaRes.data.images && lexicaRes.data.images.length > 0) {
+                        imageUrl = lexicaRes.data.images[0].src;
+                        usedService = 'Lexica.art';
+                        console.log(`✅ Immagine trovata con Lexica per: ${prompt}`);
+                    }
+                } catch (lexErr) {
+                    console.log('Lexica fallito');
+                }
+            }
+
+            // ========== TENTATIVO 3: DummyImage con testo (fallback estremo) ==========
+            if (!imageUrl) {
+                const shortPrompt = prompt.substring(0, 50).replace(/[^a-zA-Z0-9]/g, ' ');
+                imageUrl = `https://via.placeholder.com/1024x1024/0a0a0a/00e8ff?text=${encodeURIComponent(shortPrompt)}`;
+                usedService = 'Placeholder (fallback)';
+                console.log(`⚠️ Usato fallback placeholder per: ${prompt}`);
+            }
+
+            res.json({
+                success: true,
+                imageUrl: imageUrl,
+                prompt: prompt,
+                service: usedService,
+                message: `🖼️ Immagine generata per: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"${usedService !== 'Pollinations AI' ? `\n\n⚠️ Servizio di backup utilizzato: ${usedService}` : ''}`
+            });
+        } catch (e) {
+            console.error('Errore generazione immagine:', e);
+            res.status(500).json({ error: e.message });
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CHAT - CON RILEVAMENTO AUTOMATICO ORA/DATA
+    ═══════════════════════════════════════════════════════════ */
+
+    // Metodo helper per rispondere a domande su ora/data
+    _handleDateTimeQuery(message) {
+        const lowerMessage = message.toLowerCase();
+        
+        const dateTimeTriggers = [
+            'che ore', 'che ora', 'orario', 'che giorno', 'che data',
+            'data di oggi', 'oggi che giorno', 'siamo', 'quanti giorni',
+            'giorno della settimana', 'mese corrente', 'anno corrente'
+        ];
+        
+        const isDateTimeQuery = dateTimeTriggers.some(trigger => lowerMessage.includes(trigger));
+        
+        if (isDateTimeQuery) {
+            const now = new Date();
+            const romeDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
+            
+            const dateStr = romeDate.toLocaleDateString('it-IT');
+            const timeStr = romeDate.toLocaleTimeString('it-IT');
+            const dayStr = romeDate.toLocaleDateString('it-IT', { weekday: 'long' });
+            const hours = romeDate.getHours();
+            
+            let timeOfDay = '';
+            if (hours < 12) timeOfDay = 'mattino';
+            else if (hours < 18) timeOfDay = 'pomeriggio';
+            else timeOfDay = 'sera';
+            
+            return {
+                isDateTimeQuery: true,
+                response: `Oggi è **${dayStr} ${dateStr}**, sono le **${timeStr}** (${timeOfDay}, fuso orario Roma/Europa).\n\nCome posso aiutarla, Signore?`
+            };
+        }
+        
+        return { isDateTimeQuery: false };
+    }
 
     async newChat(req, res) {
         try {
@@ -541,6 +657,26 @@ class BarryController {
             const { conversationId, message, options } = req.body;
             if (!message) return res.status(400).json({ error: 'Message is required' });
 
+            // ========== CONTROLLO ORA/DATA PRIMA DI CHIAMARE L'AI ==========
+            const dateTimeCheck = this._handleDateTimeQuery(message);
+            if (dateTimeCheck.isDateTimeQuery) {
+                // Salva il messaggio dell'utente
+                let convId = conversationId;
+                if (!convId) {
+                    const autoTitle = await this._generateChatTitle(message);
+                    convId = await chatDB.createConversation(userId, autoTitle);
+                } else {
+                    const owned = await chatDB.conversationBelongsToUser(convId, userId);
+                    if (!owned) return res.status(403).json({ error: 'Accesso negato' });
+                }
+                
+                await chatDB.saveMessage(convId, 'user', message);
+                await chatDB.saveMessage(convId, 'assistant', dateTimeCheck.response);
+                chatDB.updateConversationTime(convId);
+                
+                return res.json({ success: true, conversationId: convId, response: dateTimeCheck.response });
+            }
+
             let convId = conversationId;
 
             if (!convId) {
@@ -552,19 +688,15 @@ class BarryController {
                 if (!owned) return res.status(403).json({ error: 'Accesso negato' });
             }
 
-            // Salva il messaggio dell'utente
             await chatDB.saveMessage(convId, 'user', message);
             chatDB.updateConversationTime(convId);
 
-            // Recupera lo storico
             const history = await chatDB.getMessages(convId);
             const messages = history.map(m => ({ role: m.role, content: m.content }));
 
-            // Invia all'AI
             const result = await aiService.sendMessage(messages, options || {});
 
             if (result.success) {
-                // Salva la risposta
                 await chatDB.saveMessage(convId, 'assistant', result.response);
                 chatDB.updateConversationTime(convId);
                 console.log(`💬 Messaggio salvato in conversazione ${convId}`);
@@ -584,7 +716,6 @@ class BarryController {
             if (!userId) return res.status(401).json({ error: 'Autenticazione richiesta' });
             
             const conversations = await chatDB.getConversations(userId);
-            // Filtra duplicati
             const uniqueConvs = [];
             const seenIds = new Set();
             for (const conv of conversations) {
@@ -636,6 +767,16 @@ class BarryController {
             const { messages, options } = req.body;
             if (!messages || !Array.isArray(messages))
                 return res.status(400).json({ error: 'Messages array is required' });
+            
+            // Controlla l'ultimo messaggio per ora/data
+            const lastMessage = messages.filter(m => m.role === 'user').pop();
+            if (lastMessage) {
+                const dateTimeCheck = this._handleDateTimeQuery(lastMessage.content);
+                if (dateTimeCheck.isDateTimeQuery) {
+                    return res.json({ success: true, response: dateTimeCheck.response });
+                }
+            }
+            
             const result = await aiService.sendMessage(messages, options || {});
             if (result.success) {
                 res.json({ success: true, response: result.response });
@@ -645,36 +786,9 @@ class BarryController {
         } catch (e) { res.status(500).json({ error: e.message }); }
     }
 
-    /* ══════════════════════════════════
-       GENERAZIONE IMMAGINI - FIXED
-    ══════════════════════════════════ */
-    async generateImage(req, res) {
-        try {
-            const { prompt } = req.body;
-            if (!prompt) return res.status(400).json({ error: 'Prompt richiesto' });
-            
-            const encodedPrompt = encodeURIComponent(prompt);
-            // Usa Pollinations AI con formato che restituisce immagine diretta
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
-            
-            // Verifica che l'URL sia valido
-            console.log(`🖼️ Generazione immagine per: ${prompt}`);
-            
-            res.json({
-                success: true,
-                imageUrl: imageUrl,
-                prompt: prompt,
-                message: `🖼️ Immagine generata per: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`
-            });
-        } catch (e) {
-            console.error('Errore generazione immagine:', e);
-            res.status(500).json({ error: e.message });
-        }
-    }
-
-    /* ══════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════
        FUNZIONI SPECIALI
-    ══════════════════════════════════ */
+    ═══════════════════════════════════════════════════════════ */
     async translate(req, res) {
         try {
             const { text, targetLanguage } = req.body;
@@ -745,9 +859,7 @@ class BarryController {
 
     async getSystemInfo(req, res) {
         try {
-            // Usa l'orario di ROME (UTC+1, UTC+2 in estate)
             const now = new Date();
-            // Imposta il fuso orario di Roma
             const romeDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
             const hours = romeDate.getHours();
             let timeOfDay = '';
