@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 const aiService = require('../services/aiService');
 const chatDB    = require('../database/chatDB');
+const userDB    = require('../database/userDB');
 const encryptionService = require('../services/encryptionService');
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
@@ -122,7 +123,8 @@ class BarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
             
-            if (global._users && global._users[normalizedEmail] && global._users[normalizedEmail].completed) {
+            const existingUser = await userDB.getUserByEmail(normalizedEmail);
+            if (existingUser && existingUser.completed) {
                 return res.status(400).json({ error: 'Utente già registrato. Vai su ACCEDI.' });
             }
             
@@ -215,7 +217,8 @@ class BarryController {
                 return res.status(400).json({ error: 'Devi prima verificare la tua email.' });
             }
 
-            if (global._users && global._users[normalizedEmail] && global._users[normalizedEmail].completed) {
+            const existingUser = await userDB.getUserByEmail(normalizedEmail);
+            if (existingUser && existingUser.completed) {
                 return res.status(400).json({ error: 'Utente già registrato. Vai su ACCEDI.' });
             }
 
@@ -232,22 +235,21 @@ class BarryController {
                 length: 32
             });
 
-            if (!global._users) global._users = {};
-            
-            global._users[normalizedEmail] = {
-                encryptedName: encryptedName,
-                encryptedSurname: encryptedSurname,
-                encryptionSalt: encryptionSalt,
+            // Salva su SQLite (persistente)
+            await userDB.saveUser({
+                email: normalizedEmail,
+                name: name,
+                surname: surname,
+                encryptedName,
+                encryptedSurname,
+                encryptionSalt,
                 passwordHash: hashedPassword,
                 secretWordHash: hashedSecretWord,
                 fingerprintHash: encryptionService.hash(fingerprint),
                 gaSecret: secret.base32,
-                twofaEnabled: true,
                 completed: false,
-                emailVerified: true,
-                registeredAt: null,
-                createdAt: Date.now()
-            };
+                emailVerified: true
+            });
 
             console.log(`📝 Registrazione iniziata: ${normalizedEmail}`);
 
@@ -273,13 +275,13 @@ class BarryController {
             if (!email || !gaCode) return res.status(400).json({ error: 'Email e codice GA richiesti' });
 
             const normalizedEmail = email.trim().toLowerCase();
-            const user = global._users?.[normalizedEmail];
+            const user = await userDB.getUserByEmail(normalizedEmail);
 
             if (!user) return res.status(400).json({ error: 'Utente non trovato.' });
             if (user.completed) return res.status(400).json({ error: 'Utente già registrato.' });
 
             const verified = speakeasy.totp.verify({
-                secret: user.gaSecret,
+                secret: user.ga_secret,
                 encoding: 'base32',
                 token: gaCode.toString().trim(),
                 window: 2
@@ -287,8 +289,8 @@ class BarryController {
             
             if (!verified) return res.status(400).json({ error: 'Codice Google Authenticator non valido' });
 
-            user.completed = true;
-            user.registeredAt = Date.now();
+            // Marca come completato nel DB
+            await userDB.completeRegistration(normalizedEmail);
             console.log(`✅ Registrazione completata: ${normalizedEmail}`);
 
             const token = jwt.sign(
@@ -322,7 +324,7 @@ class BarryController {
                 return res.status(403).json({ error: 'Email non autorizzata.' });
             }
 
-            const user = global._users?.[normalizedEmail];
+            const user = await userDB.getUserByEmail(normalizedEmail);
             
             if (!user) {
                 return res.status(400).json({ error: 'Utente non trovato. Devi prima registrarti.' });
@@ -332,21 +334,21 @@ class BarryController {
                 return res.status(400).json({ error: 'Registrazione non completata. Controlla la tua email e completa la registrazione.' });
             }
 
-            const validPassword = await bcrypt.compare(password, user.passwordHash);
+            const validPassword = await bcrypt.compare(password, user.password_hash);
             if (!validPassword) return res.status(400).json({ error: 'Password errata' });
 
-            const validSecretWord = await bcrypt.compare(secretWord, user.secretWordHash);
+            const validSecretWord = await bcrypt.compare(secretWord, user.secret_word_hash);
             if (!validSecretWord) return res.status(400).json({ error: 'Parola segreta errata' });
 
             const fingerprintHash = encryptionService.hash(fingerprint);
             
-            if (user.twofaEnabled && !token) {
+            if (user.twofa_enabled && !token) {
                 return res.json({ requiresTwoFactor: true });
             }
 
-            if (user.twofaEnabled && token) {
+            if (user.twofa_enabled && token) {
                 const verified = speakeasy.totp.verify({
-                    secret: user.gaSecret,
+                    secret: user.ga_secret,
                     encoding: 'base32',
                     token: token.toString().trim(),
                     window: 2
@@ -354,20 +356,21 @@ class BarryController {
                 if (!verified) return res.status(400).json({ error: 'Codice 2FA non valido' });
             }
 
-            const { key: encryptionKey } = await encryptionService.deriveKey(secretWord, user.encryptionSalt);
+            const { key: encryptionKey } = await encryptionService.deriveKey(secretWord, user.encryption_salt);
             
             let decryptedName = '';
             let decryptedSurname = '';
             try {
-                decryptedName = encryptionService.decrypt(user.encryptedName, encryptionKey);
-                decryptedSurname = encryptionService.decrypt(user.encryptedSurname, encryptionKey);
+                decryptedName = encryptionService.decrypt(user.encrypted_name, encryptionKey);
+                decryptedSurname = encryptionService.decrypt(user.encrypted_surname, encryptionKey);
             } catch (decryptErr) {
                 console.error('Errore decriptazione dati utente:', decryptErr);
-                decryptedName = 'Utente';
-                decryptedSurname = '';
+                decryptedName = user.name || 'Utente';
+                decryptedSurname = user.surname || '';
             }
 
             chatDB.setUserKey(normalizedEmail, encryptionKey);
+            userDB.updateLastLogin(normalizedEmail, req.ip, req.headers['user-agent']);
 
             const jwtToken = jwt.sign(
                 { email: normalizedEmail, name: decryptedName },
@@ -403,8 +406,10 @@ class BarryController {
         try {
             const { email, newPassword } = req.body;
             const normalizedEmail = email.trim().toLowerCase();
-            if (global._users?.[normalizedEmail]) {
-                global._users[normalizedEmail].passwordHash = await bcrypt.hash(newPassword, 10);
+            const user = await userDB.getUserByEmail(normalizedEmail);
+            if (user) {
+                const newHash = await bcrypt.hash(newPassword, 10);
+                await userDB.updatePasswordHash(normalizedEmail, newHash);
                 console.log(`✅ Password resettata: ${normalizedEmail}`);
             }
             res.json({ success: true, message: 'Password aggiornata.' });
@@ -415,11 +420,12 @@ class BarryController {
         try {
             const { email, currentPassword, newPassword } = req.body;
             const normalizedEmail = email.trim().toLowerCase();
-            const user = global._users?.[normalizedEmail];
+            const user = await userDB.getUserByEmail(normalizedEmail);
             if (user) {
-                const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+                const valid = await bcrypt.compare(currentPassword, user.password_hash);
                 if (valid) {
-                    user.passwordHash = await bcrypt.hash(newPassword, 10);
+                    const newHash = await bcrypt.hash(newPassword, 10);
+                    await userDB.updatePasswordHash(normalizedEmail, newHash);
                     console.log(`✅ Password cambiata: ${normalizedEmail}`);
                 } else {
                     return res.status(400).json({ error: 'Password attuale errata' });
@@ -434,7 +440,7 @@ class BarryController {
             const userId = getUserIdFromReq(req);
             if (!userId) return res.status(401).json({ error: 'No token' });
 
-            const user = global._users?.[userId];
+            const user = await userDB.getUserByEmail(userId);
             
             if (!user || !user.completed) {
                 return res.status(401).json({ error: 'Utente non trovato' });
@@ -443,8 +449,8 @@ class BarryController {
             res.json({
                 success: true,
                 user: {
-                    name: 'Utente',
-                    surname: '',
+                    name: user.name || 'Utente',
+                    surname: user.surname || '',
                     email: userId,
                     twofa_enabled: true
                 }
@@ -459,7 +465,8 @@ class BarryController {
             const { name, surname } = req.body;
             const userId = getUserIdFromReq(req);
             
-            if (!userId || !global._users?.[userId]) {
+            const user = userId ? await userDB.getUserByEmail(userId) : null;
+            if (!userId || !user) {
                 return res.status(401).json({ error: 'Non autorizzato' });
             }
             
